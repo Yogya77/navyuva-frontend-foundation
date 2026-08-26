@@ -10,33 +10,73 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as GamesRouteImport } from './routes/games'
+import { Route as HistoricalRecordsRouteImport } from './routes/historical-records'
+import { Route as MuseumRouteImport } from './routes/museum'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GamesRoute = GamesRouteImport.update({
+  id: '/games',
+  path: '/games',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoricalRecordsRoute = HistoricalRecordsRouteImport.update({
+  id: '/historical-records',
+  path: '/historical-records',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MuseumRoute = MuseumRouteImport.update({
+  id: '/museum',
+  path: '/museum',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/games': typeof GamesRoute
+  '/historical-records': typeof HistoricalRecordsRoute
+  '/museum': typeof MuseumRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/games': typeof GamesRoute
+  '/historical-records': typeof HistoricalRecordsRoute
+  '/museum': typeof MuseumRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/games': typeof GamesRoute
+  '/historical-records': typeof HistoricalRecordsRoute
+  '/museum': typeof MuseumRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/about' | '/games' | '/historical-records' | '/museum'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/about' | '/games' | '/historical-records' | '/museum'
+  id: '__root__' | '/' | '/about' | '/games' | '/historical-records' | '/museum'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  GamesRoute: typeof GamesRoute
+  HistoricalRecordsRoute: typeof HistoricalRecordsRoute
+  MuseumRoute: typeof MuseumRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +88,43 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/games': {
+      id: '/games'
+      path: '/games'
+      fullPath: '/games'
+      preLoaderRoute: typeof GamesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/historical-records': {
+      id: '/historical-records'
+      path: '/historical-records'
+      fullPath: '/historical-records'
+      preLoaderRoute: typeof HistoricalRecordsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/museum': {
+      id: '/museum'
+      path: '/museum'
+      fullPath: '/museum'
+      preLoaderRoute: typeof MuseumRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  GamesRoute: GamesRoute,
+  HistoricalRecordsRoute: HistoricalRecordsRoute,
+  MuseumRoute: MuseumRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
