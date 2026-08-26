@@ -30,20 +30,17 @@ export const Route = createFileRoute("/")({
 const features = [
   {
     title: "EXPLORE",
-    description:
-      "Explore historically significant places and civilizations.",
+    description: "Explore historically significant places and civilizations.",
     icon: Compass,
   },
   {
     title: "DISCOVER",
-    description:
-      "Find artifacts and clues hidden throughout historical game levels.",
+    description: "Find artifacts and clues hidden throughout historical game levels.",
     icon: Eye,
   },
   {
     title: "PRESERVE",
-    description:
-      "Unlock artifacts and build your virtual heritage collection.",
+    description: "Unlock artifacts and build your virtual heritage collection.",
     icon: Shield,
   },
 ];
@@ -108,8 +105,8 @@ function Index() {
             &ldquo;Discover the Past. Play the Story.&rdquo;
           </p>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Explore civilizations, discover historical artifacts, collect clues,
-            solve challenges, and unlock the stories behind our heritage.
+            Explore civilizations, discover historical artifacts, collect clues, solve challenges,
+            and unlock the stories behind our heritage.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <Button size="lg" asChild>
@@ -151,13 +148,12 @@ function Index() {
               />
               <div className="mt-8 space-y-4 text-muted-foreground">
                 <p>
-                  Through games, exploration, and artifact discovery, learners
-                  engage with heritage in a way that feels immersive and
-                  memorable.
+                  Through games, exploration, and artifact discovery, learners engage with heritage
+                  in a way that feels immersive and memorable.
                 </p>
                 <p>
-                  Every clue, quiz, and unlocked artifact is designed to deepen
-                  curiosity about the civilizations that shaped our world.
+                  Every clue, quiz, and unlocked artifact is designed to deepen curiosity about the
+                  civilizations that shaped our world.
                 </p>
               </div>
               <div className="mt-8">

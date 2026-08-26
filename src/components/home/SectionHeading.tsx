@@ -7,12 +7,7 @@ interface SectionHeadingProps {
   className?: string;
 }
 
-export function SectionHeading({
-  eyebrow,
-  title,
-  subtitle,
-  className,
-}: SectionHeadingProps) {
+export function SectionHeading({ eyebrow, title, subtitle, className }: SectionHeadingProps) {
   return (
     <div className={cn("mx-auto max-w-2xl text-center", className)}>
       {eyebrow && (
@@ -24,9 +19,7 @@ export function SectionHeading({
         {title}
       </h2>
       {subtitle && (
-        <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-          {subtitle}
-        </p>
+        <p className="mt-4 text-base leading-relaxed text-muted-foreground">{subtitle}</p>
       )}
     </div>
   );

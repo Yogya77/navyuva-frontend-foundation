@@ -17,9 +17,7 @@ export function Footer() {
             <h3 className="font-serif text-2xl font-bold tracking-[0.15em] text-foreground">
               NAVYUVA
             </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Discover the Past. Play the Story.
-            </p>
+            <p className="mt-2 text-sm text-muted-foreground">Discover the Past. Play the Story.</p>
           </div>
           <nav className="flex flex-wrap justify-center gap-6">
             {footerLinks.map((link) => (
@@ -35,8 +33,8 @@ export function Footer() {
         </div>
         <div className="mt-12 border-t border-border/50 pt-8 text-center">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} NAVYUVA. Built for SIH Problem
-            Statement 26208 — Heritage & Culture.
+            © {new Date().getFullYear()} NAVYUVA. Built for SIH Problem Statement 26208 — Heritage &
+            Culture.
           </p>
         </div>
       </div>

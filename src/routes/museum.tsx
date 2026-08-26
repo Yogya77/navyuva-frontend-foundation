@@ -31,8 +31,8 @@ function MuseumPage() {
         The Virtual Museum
       </h1>
       <p className="mt-4 max-w-md text-muted-foreground">
-        Artifact halls, locked exhibits, and timeline displays are under
-        construction for the next phase of NAVYUVA.
+        Artifact halls, locked exhibits, and timeline displays are under construction for the next
+        phase of NAVYUVA.
       </p>
       <Button className="mt-8" asChild>
         <Link to="/">Return Home</Link>

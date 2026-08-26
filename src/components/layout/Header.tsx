@@ -32,7 +32,7 @@ export function Header() {
               to={link.to}
               className={cn(
                 "text-sm font-medium tracking-wide text-muted-foreground transition-colors hover:text-foreground",
-                pathname === link.to && "text-foreground"
+                pathname === link.to && "text-foreground",
               )}
             >
               {link.label}
@@ -66,11 +66,7 @@ export function Header() {
           aria-label="Toggle menu"
           aria-expanded={mobileOpen}
         >
-          {mobileOpen ? (
-            <X className="h-6 w-6" />
-          ) : (
-            <Menu className="h-6 w-6" />
-          )}
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
       </div>
 
@@ -85,7 +81,7 @@ export function Header() {
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "text-base font-medium text-muted-foreground transition-colors hover:text-foreground",
-                  pathname === link.to && "text-foreground"
+                  pathname === link.to && "text-foreground",
                 )}
               >
                 {link.label}

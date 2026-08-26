@@ -31,8 +31,7 @@ function HistoricalRecordsPage() {
         Historical Records
       </h1>
       <p className="mt-4 max-w-md text-muted-foreground">
-        A curated archive of civilizations, timelines, and cultural stories is on
-        its way.
+        A curated archive of civilizations, timelines, and cultural stories is on its way.
       </p>
       <Button className="mt-8" asChild>
         <Link to="/">Return Home</Link>

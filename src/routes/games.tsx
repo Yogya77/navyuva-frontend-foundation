@@ -31,8 +31,8 @@ function GamesPage() {
         Historical Games
       </h1>
       <p className="mt-4 max-w-md text-muted-foreground">
-        Exploration levels, clue hunts, and quiz challenges are being crafted for
-        the NAVYUVA experience.
+        Exploration levels, clue hunts, and quiz challenges are being crafted for the NAVYUVA
+        experience.
       </p>
       <Button className="mt-8" asChild>
         <Link to="/">Return Home</Link>

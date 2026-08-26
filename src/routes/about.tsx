@@ -7,14 +7,12 @@ export const Route = createFileRoute("/about")({
       { title: "About — NAVYUVA" },
       {
         name: "description",
-        content:
-          "Learn about NAVYUVA, the interactive heritage and culture platform.",
+        content: "Learn about NAVYUVA, the interactive heritage and culture platform.",
       },
       { property: "og:title", content: "About — NAVYUVA" },
       {
         property: "og:description",
-        content:
-          "Learn about NAVYUVA, the interactive heritage and culture platform.",
+        content: "Learn about NAVYUVA, the interactive heritage and culture platform.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -34,18 +32,17 @@ function AboutPage() {
         />
         <div className="mt-12 space-y-6 text-base leading-relaxed text-muted-foreground">
           <p>
-            NAVYUVA is a prototype platform built for SIH Problem Statement 26208
-            under the Heritage & Culture theme. It reimagines historical learning
-            as an interactive adventure.
+            NAVYUVA is a prototype platform built for SIH Problem Statement 26208 under the Heritage
+            & Culture theme. It reimagines historical learning as an interactive adventure.
           </p>
           <p>
-            Instead of reading static facts, users explore civilizations,
-            discover artifacts, collect clues, solve quizzes, and unlock stories
-            — building their own virtual museum along the way.
+            Instead of reading static facts, users explore civilizations, discover artifacts,
+            collect clues, solve quizzes, and unlock stories — building their own virtual museum
+            along the way.
           </p>
           <p>
-            Our vision is to make heritage education engaging, accessible, and
-            memorable for learners everywhere.
+            Our vision is to make heritage education engaging, accessible, and memorable for
+            learners everywhere.
           </p>
         </div>
       </div>
