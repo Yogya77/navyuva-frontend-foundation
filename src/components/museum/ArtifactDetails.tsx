@@ -4,7 +4,7 @@ interface ArtifactDetailsProps {
   artifact: Artifact;
 }
 
-function Field({ label, value }: { label: string; value?: string }) {
+function Field({ label, value }: { label: string; value: string | undefined }) {
   return (
     <div>
       <dt className="text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">{label}</dt>

@@ -28,9 +28,9 @@ export function ProgressPanel({
   );
 
   const items = [
-    { label: "Artifacts", value: `${artifactsUnlocked} / ${artifactsTotal}`, bar: [artifactsUnlocked, artifactsTotal] },
-    { label: "Clues", value: `${cluesCollected} / ${cluesTotal}`, bar: [cluesCollected, cluesTotal] },
-    { label: "Overall Progress", value: `${overall}%`, bar: [overall, 100] },
+    { label: "Artifacts", value: `${artifactsUnlocked} / ${artifactsTotal}`, bar: [artifactsUnlocked, artifactsTotal] as const },
+    { label: "Clues", value: `${cluesCollected} / ${cluesTotal}`, bar: [cluesCollected, cluesTotal] as const },
+    { label: "Overall Progress", value: `${overall}%`, bar: [overall, 100] as const },
   ];
 
   return (
