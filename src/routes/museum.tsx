@@ -1,18 +1,34 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { Info } from "lucide-react";
+import { ArtifactCard } from "@/components/museum/ArtifactCard";
+import { ArtifactDetails } from "@/components/museum/ArtifactDetails";
+import { CivilizationSidebar } from "@/components/museum/CivilizationSidebar";
+import { HistoricalTimeline } from "@/components/museum/HistoricalTimeline";
+import { ProgressPanel } from "@/components/museum/ProgressPanel";
+import {
+  artifacts,
+  civilizations,
+  LOCKED_ARTIFACT_MESSAGE,
+  LOCKED_CIVILIZATION_MESSAGE,
+  museumProgress,
+  type Artifact,
+} from "@/data/museum";
 
 export const Route = createFileRoute("/museum")({
   head: () => ({
     meta: [
-      { title: "Museum — NAVYUVA" },
+      { title: "Indus Valley Museum — NAVYUVA" },
       {
         name: "description",
-        content: "The NAVYUVA virtual museum is coming soon.",
+        content:
+          "Explore the NAVYUVA virtual museum: Harappan artifacts, historical timeline and heritage collection progress.",
       },
-      { property: "og:title", content: "Museum — NAVYUVA" },
+      { property: "og:title", content: "Indus Valley Museum — NAVYUVA" },
       {
         property: "og:description",
-        content: "The NAVYUVA virtual museum is coming soon.",
+        content:
+          "Explore Harappan artifacts, unlock exhibits and trace India's civilizations on the NAVYUVA timeline.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -22,21 +38,122 @@ export const Route = createFileRoute("/museum")({
 });
 
 function MuseumPage() {
+  const [selectedId, setSelectedId] = useState("pottery");
+  const [notice, setNotice] = useState<string | null>(null);
+  const activeCivilizationId = "indus";
+
+  const selected = artifacts.find((a) => a.id === selectedId) ?? artifacts[0]!;
+
+  function handleArtifactSelect(artifact: Artifact) {
+    if (artifact.locked) {
+      setNotice(LOCKED_ARTIFACT_MESSAGE);
+      return;
+    }
+    setNotice(null);
+    setSelectedId(artifact.id);
+  }
+
   return (
-    <div className="flex min-h-[70vh] flex-col items-center justify-center bg-background px-4 text-center">
-      <span className="font-serif text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-        Coming Soon
-      </span>
-      <h1 className="mt-4 font-serif text-4xl font-bold text-foreground sm:text-5xl">
-        The Virtual Museum
-      </h1>
-      <p className="mt-4 max-w-md text-muted-foreground">
-        Artifact halls, locked exhibits, and timeline displays are under construction for the next
-        phase of NAVYUVA.
-      </p>
-      <Button className="mt-8" asChild>
-        <Link to="/">Return Home</Link>
-      </Button>
+    <div className="bg-background">
+      <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+        {/* Museum header */}
+        <header className="text-center">
+          <span className="font-serif text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+            Virtual Museum
+          </span>
+          <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Indus Valley (Harappan) Museum
+          </h1>
+          <p className="mt-2 text-sm tracking-[0.2em] text-muted-foreground">2600–1900 BCE</p>
+
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-muted-foreground">
+            <span>
+              Artifacts Unlocked:{" "}
+              <span className="font-semibold text-foreground">
+                {museumProgress.artifactsUnlocked} / {museumProgress.artifactsTotal}
+              </span>
+            </span>
+            <span>
+              Clues Collected:{" "}
+              <span className="font-semibold text-foreground">
+                {museumProgress.cluesCollected} / {museumProgress.cluesTotal}
+              </span>
+            </span>
+          </div>
+
+          <div className="mt-8 flex items-center justify-center gap-3" aria-hidden="true">
+            <span className="h-px w-16 bg-gradient-to-r from-transparent to-primary/50 sm:w-28" />
+            <span className="h-1.5 w-1.5 rotate-45 bg-primary/70" />
+            <span className="h-px w-24 bg-primary/40 sm:w-40" />
+            <span className="h-1.5 w-1.5 rotate-45 bg-primary/70" />
+            <span className="h-px w-16 bg-gradient-to-l from-transparent to-primary/50 sm:w-28" />
+          </div>
+        </header>
+
+        {/* Sidebar + artifacts */}
+        <div className="mt-12 grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <CivilizationSidebar
+            civilizations={civilizations}
+            activeId={activeCivilizationId}
+            onSelect={(civ) =>
+              setNotice(civ.locked ? LOCKED_CIVILIZATION_MESSAGE : null)
+            }
+          />
+
+          <div>
+            {notice && (
+              <p
+                role="status"
+                className="mb-4 flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-3 text-sm text-foreground"
+              >
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {notice}
+              </p>
+            )}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {artifacts.map((artifact) => (
+                <ArtifactCard
+                  key={artifact.id}
+                  artifact={artifact}
+                  selected={artifact.id === selectedId}
+                  onSelect={handleArtifactSelect}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Selected artifact */}
+        <div className="mt-8">
+          <ArtifactDetails artifact={selected} />
+        </div>
+
+        {/* Timeline */}
+        <div className="mt-16">
+          <h2 className="text-center font-serif text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+            Historical Timeline
+          </h2>
+          <div className="mt-8">
+            <HistoricalTimeline civilizations={civilizations} activeId={activeCivilizationId} />
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="mt-16">
+          <ProgressPanel
+            artifactsUnlocked={museumProgress.artifactsUnlocked}
+            artifactsTotal={museumProgress.artifactsTotal}
+            cluesCollected={museumProgress.cluesCollected}
+            cluesTotal={museumProgress.cluesTotal}
+          />
+        </div>
+
+        {/* Explanation */}
+        <p className="mx-auto mt-10 max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
+          Unlock artifacts and build your museum as you progress through historical game levels.
+          Every exhibit, clue and period here becomes available through gameplay.
+        </p>
+      </div>
     </div>
   );
 }
