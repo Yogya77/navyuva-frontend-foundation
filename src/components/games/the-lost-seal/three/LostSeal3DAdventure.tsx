@@ -294,104 +294,159 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
 
   const activeLevelInfo = LEVEL_DETAILS[currentLevelId];
 
-  // Intro Screen
+  // ── CINEMATIC MAIN MENU ────────────────────────────────────────────────────
   if (!hasStarted) {
     return (
-      <div className="mx-auto max-w-3xl rounded-3xl border border-primary/40 bg-gradient-to-b from-card via-card/95 to-background p-6 sm:p-10 shadow-2xl">
-        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.25em] text-primary">
-          <Sparkles className="h-4 w-4" />
-          Third-Person 3D Historical Adventure
+      <div className="relative min-h-[600px] w-full overflow-hidden rounded-2xl flex flex-col items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #0a0614 0%, #0e1a2a 45%, #160a04 100%)" }}>
+
+        {/* Decorative ambient glow blobs */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full opacity-10"
+            style={{ background: "radial-gradient(circle, #00cccc 0%, transparent 70%)", filter: "blur(48px)" }} />
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8"
+            style={{ background: "radial-gradient(circle, #ff8833 0%, transparent 70%)", filter: "blur(60px)" }} />
+          <div className="absolute top-10 right-1/3 w-40 h-40 rounded-full opacity-6"
+            style={{ background: "radial-gradient(circle, #7744ff 0%, transparent 70%)", filter: "blur(40px)" }} />
         </div>
 
-        <h1 className="mt-3 font-serif text-3xl font-bold tracking-tight text-foreground sm:text-5xl">
-          THE LOST SEAL
-        </h1>
-        <p className="mt-2 font-serif text-base text-gold sm:text-lg">
-          An Archaeological Expedition into Mohenjo-daro (2600–1900 BCE)
-        </p>
-
-        <div className="mt-6 space-y-4 text-sm leading-relaxed text-muted-foreground">
-          <p>
-            Experience the ancient Indus Valley Civilization in a{" "}
-            <strong>stylized third-person 3D adventure</strong>. Control your explorer with{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground text-xs font-mono">
-              WASD
-            </kbd>{" "}
-            or{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground text-xs font-mono">
-              Arrow Keys
-            </kbd>
-            , orbit the camera with your mouse, sprint with{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground text-xs font-mono">
-              SHIFT
-            </kbd>
-            , jump with{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-secondary text-foreground text-xs font-mono">
-              SPACE
-            </kbd>
-            , and press{" "}
-            <kbd className="px-1.5 py-0.5 rounded bg-primary text-black font-bold text-xs font-mono">
-              E
-            </kbd>{" "}
-            to inspect artifacts.
-          </p>
-          <p>
-            Explore 3 interconnected levels: discover the citadel in <strong>The Lost City</strong>,
-            solve ancient trade mechanisms in <strong>The Merchant Quarter</strong>, and descend
-            into <strong>The Sealed Sanctum</strong> to authenticate the master{" "}
-            <strong>Steatite Stamp Seal</strong> for the <strong>Virtual Museum</strong>.
-          </p>
+        {/* Decorative floating particles (CSS only) */}
+        <div className="pointer-events-none absolute inset-0">
+          {[...Array(18)].map((_, i) => (
+            <div key={i}
+              className="absolute w-1 h-1 rounded-full opacity-30 animate-pulse"
+              style={{
+                background: i % 3 === 0 ? "#00cccc" : i % 3 === 1 ? "#ffaa44" : "#ffffff",
+                left: `${8 + (i * 5.2) % 84}%`,
+                top: `${10 + (i * 7.3) % 75}%`,
+                animationDelay: `${(i * 0.37) % 3}s`,
+                animationDuration: `${2.4 + (i * 0.3) % 2}s`,
+              }} />
+          ))}
         </div>
 
-        {/* Graphics Quality Tier Selector */}
-        <div className="mt-6 rounded-2xl border border-border/50 bg-background/50 p-4">
-          <div className="flex items-center gap-2 text-xs font-bold uppercase text-foreground mb-2">
-            <Settings2 className="h-4 w-4 text-primary" />
-            <span>Graphics Quality Setting</span>
+        <div className="relative z-10 flex flex-col items-center px-6 py-10 text-center max-w-2xl w-full">
+          {/* Badge */}
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] mb-6"
+            style={{ color: "#00cccc" }}>
+            <Sparkles className="h-4 w-4" />
+            <span>NAVYUVA Heritage · 3D Adventure</span>
+            <Sparkles className="h-4 w-4" />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(["ultra", "high", "mobile-high", "mobile"] as QualityTier[]).map((q) => (
-              <button
-                key={q}
-                type="button"
-                onClick={() => setQualityTier(q)}
-                className={`px-3 py-2 rounded-xl text-xs font-semibold capitalize border transition-all ${
-                  qualityTier === q
-                    ? "bg-primary text-primary-foreground border-primary shadow-md"
-                    : "bg-card/70 text-muted-foreground border-border/60 hover:text-foreground"
-                }`}
-              >
-                {q === "ultra"
-                  ? "Ultra (RTX/Desktop)"
-                  : q === "high"
-                    ? "High Quality"
-                    : q === "mobile-high"
-                      ? "Mobile High"
-                      : "Mobile Eco"}
-              </button>
+
+          {/* Main Title */}
+          <div className="mb-2">
+            <h1 className="font-serif font-black tracking-[0.15em] uppercase"
+              style={{
+                fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
+                lineHeight: 1.0,
+                background: "linear-gradient(135deg, #ffeecc 0%, #ffaa44 40%, #ff7722 70%, #dd4400 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 32px rgba(255, 120, 30, 0.5))",
+              }}>
+              THE LOST
+            </h1>
+            <h1 className="font-serif font-black tracking-[0.35em] uppercase"
+              style={{
+                fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
+                lineHeight: 1.0,
+                background: "linear-gradient(135deg, #88ffff 0%, #00dddd 50%, #0099bb 100%)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                filter: "drop-shadow(0 0 28px rgba(0, 200, 200, 0.6))",
+              }}>
+              SEAL
+            </h1>
+          </div>
+
+          {/* Subtitle */}
+          <p className="mt-3 text-sm font-medium tracking-[0.15em] uppercase opacity-60"
+            style={{ color: "#c8a878" }}>
+            An Archaeological Expedition · Mohenjo-daro · 2600–1900 BCE
+          </p>
+
+          {/* Divider line */}
+          <div className="mt-6 flex items-center gap-3 w-full max-w-xs">
+            <div className="flex-1 h-px opacity-30" style={{ background: "linear-gradient(to right, transparent, #00cccc)" }} />
+            <div className="w-2 h-2 rounded-full" style={{ background: "#00cccc", boxShadow: "0 0 8px #00cccc" }} />
+            <div className="flex-1 h-px opacity-30" style={{ background: "linear-gradient(to left, transparent, #00cccc)" }} />
+          </div>
+
+          {/* Story intro */}
+          <p className="mt-6 text-sm leading-relaxed opacity-70 max-w-lg" style={{ color: "#d4c0a0" }}>
+            A master steatite stamp seal — the administrative key of a vanished civilization —
+            has been discovered deep within the ancient citadel of Mohenjo-daro.
+            Explore three interconnected ruins, solve ancient mechanisms, and recover the
+            <strong style={{ color: "#ffcc88" }}> Lost Seal</strong> for the Virtual Museum.
+          </p>
+
+          {/* Controls quick ref */}
+          <div className="mt-6 flex flex-wrap justify-center gap-2 text-xs">
+            {[
+              ["WASD", "Move"],
+              ["SHIFT", "Sprint"],
+              ["SPACE", "Jump"],
+              ["E", "Inspect"],
+              ["Mouse", "Camera"],
+            ].map(([key, label]) => (
+              <div key={key} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}>
+                <kbd className="rounded px-1.5 py-0.5 text-xs font-bold font-mono"
+                  style={{ background: "rgba(0,200,200,0.15)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.3)" }}>
+                  {key}
+                </kbd>
+                <span style={{ color: "#a0957a" }}>{label}</span>
+              </div>
             ))}
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border/40 pt-5">
-          <Button
-            variant="ghost"
-            onClick={onExit}
-            className="w-full sm:w-auto text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Games Hub
-          </Button>
+          {/* Quality selector */}
+          <div className="mt-6 w-full max-w-sm rounded-xl p-4"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Settings2 className="h-3.5 w-3.5" style={{ color: "#00cccc" }} />
+              <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8aabb0" }}>
+                Graphics Quality
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {(["ultra", "high", "mobile-high", "mobile"] as QualityTier[]).map((q) => (
+                <button key={q} type="button" onClick={() => setQualityTier(q)}
+                  className="rounded-lg px-3 py-2 text-xs font-semibold transition-all"
+                  style={qualityTier === q
+                    ? { background: "rgba(0,200,200,0.2)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.5)", boxShadow: "0 0 12px rgba(0,200,200,0.2)" }
+                    : { background: "rgba(255,255,255,0.03)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  {q === "ultra" ? "⚡ Ultra (RTX)" : q === "high" ? "✨ High" : q === "mobile-high" ? "📱 Mobile Hi" : "🌿 Eco"}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          <Button
-            onClick={() => setHasStarted(true)}
-            size="lg"
-            className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 font-serif font-bold shadow-lg shadow-primary/20"
-          >
-            Enter 3D Adventure World
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          {/* Action buttons */}
+          <div className="mt-8 flex w-full flex-col sm:flex-row items-center gap-3">
+            <button type="button" onClick={onExit}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all"
+              style={{ background: "rgba(255,255,255,0.05)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.08)" }}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </button>
+
+            <button type="button" onClick={() => setHasStarted(true)}
+              className="w-full sm:flex-1 flex items-center justify-center gap-3 rounded-xl px-8 py-4 text-base font-bold font-serif uppercase tracking-widest transition-all"
+              style={{
+                background: "linear-gradient(135deg, #cc5500 0%, #ff7722 50%, #ffaa44 100%)",
+                color: "#fff8ee",
+                boxShadow: "0 0 40px rgba(255, 110, 30, 0.35), 0 4px 24px rgba(0,0,0,0.5)",
+                letterSpacing: "0.18em",
+              }}
+              onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 60px rgba(255, 120, 30, 0.55), 0 4px 24px rgba(0,0,0,0.5)")}
+              onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255, 110, 30, 0.35), 0 4px 24px rgba(0,0,0,0.5)")}>
+              <Zap className="h-5 w-5" />
+              Begin Expedition
+              <ArrowRight className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </div>
     );

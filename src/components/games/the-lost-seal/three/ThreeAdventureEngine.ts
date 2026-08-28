@@ -1,4 +1,4 @@
-import * as THREE from "three";
+﻿import * as THREE from "three";
 import { createStylizedMaterials, type StylizedMaterialPalette } from "./materials";
 import { createStylizedPlayer, type StylizedPlayer } from "./character";
 import { createLevel1LostCity, type LevelSceneResult } from "./levels/level1LostCity";
@@ -42,6 +42,11 @@ export class ThreeAdventureEngine {
   private nearbyEntity: InteractiveEntity3D | null = null;
   private currentQuality: QualityTier = "high";
 
+  private composer: {
+    render: () => void;
+    setSize: (w: number, h: number) => void;
+  } | null = null;
+
   constructor(
     canvas: HTMLCanvasElement,
     callbacks: AdventureEngineCallbacks,
@@ -51,7 +56,6 @@ export class ThreeAdventureEngine {
     this.callbacks = callbacks;
     this.currentQuality = initialQuality;
 
-    // 1. Renderer Setup with Quality Scalability
     this.renderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       antialias: initialQuality !== "mobile",
@@ -60,7 +64,6 @@ export class ThreeAdventureEngine {
 
     this.applyQualitySettings(initialQuality);
 
-    // 2. Scene & Base Lights
     this.scene = new THREE.Scene();
     this.mats = createStylizedMaterials();
 
@@ -86,7 +89,6 @@ export class ThreeAdventureEngine {
     this.sunLight.shadow.bias = -0.0005;
     this.scene.add(this.sunLight);
 
-    // 3. Camera & Player
     const aspect = canvas.clientWidth / canvas.clientHeight;
     this.cameraController = new ThirdPersonCamera(aspect);
 
@@ -95,14 +97,62 @@ export class ThreeAdventureEngine {
 
     this.physics = new PlayerPhysicsController();
 
-    // 4. Load Initial Level 1
+    this.initPostProcessing();
     this.loadLevel("level-1-lost-city");
-
-    // 5. Bind Listeners
     this.bindEvents();
-
-    // 6. Start Loop
     this.animate(performance.now());
+  }
+
+  private async initPostProcessing() {
+    try {
+      const [
+        { EffectComposer },
+        { RenderPass },
+        { UnrealBloomPass },
+        { OutputPass },
+        { ShaderPass },
+      ] = await Promise.all([
+        import("three/addons/postprocessing/EffectComposer.js"),
+        import("three/addons/postprocessing/RenderPass.js"),
+        import("three/addons/postprocessing/UnrealBloomPass.js"),
+        import("three/addons/postprocessing/OutputPass.js"),
+        import("three/addons/postprocessing/ShaderPass.js"),
+      ]);
+
+      const w = this.canvas.clientWidth;
+      const h = this.canvas.clientHeight;
+
+      const effectComposer = new EffectComposer(this.renderer);
+      effectComposer.setSize(w, h);
+
+      const renderPass = new RenderPass(this.scene, this.cameraController.camera);
+      effectComposer.addPass(renderPass);
+
+      const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.52, 0.42, 0.78);
+      effectComposer.addPass(bloomPass);
+
+      const vignetteShader = {
+        uniforms: {
+          tDiffuse: { value: null as THREE.Texture | null },
+          offset: { value: 0.90 },
+          darkness: { value: 0.50 },
+        },
+        vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+        fragmentShader: `uniform sampler2D tDiffuse; uniform float offset; uniform float darkness; varying vec2 vUv; void main() { vec4 color = texture2D(tDiffuse, vUv); vec2 uv = (vUv - vec2(0.5)) * vec2(offset); float vig = 1.0 - dot(uv, uv) * darkness; color.rgb *= clamp(vig, 0.0, 1.0); gl_FragColor = color; }`,
+      };
+      const vignettePass = new ShaderPass(vignetteShader);
+      effectComposer.addPass(vignettePass);
+
+      const outputPass = new OutputPass();
+      effectComposer.addPass(outputPass);
+
+      this.composer = {
+        render: () => effectComposer.render(),
+        setSize: (w: number, h: number) => effectComposer.setSize(w, h),
+      };
+    } catch {
+      this.composer = null;
+    }
   }
 
   public setQuality(quality: QualityTier) {
@@ -150,7 +200,6 @@ export class ThreeAdventureEngine {
 
     this.scene.add(this.currentLevelData.group);
 
-    // Set Lighting & Fog for level
     this.sunLight.color.setHex(this.currentLevelData.sunColor);
     this.sunLight.intensity = this.currentLevelData.sunIntensity;
     this.ambientLight.color.setHex(this.currentLevelData.ambientColor);
@@ -161,7 +210,6 @@ export class ThreeAdventureEngine {
       this.currentLevelData.fogDensity,
     );
 
-    // Spawn player
     this.physics.setSpawn(this.currentLevelData.spawnPoint, this.currentLevelData.spawnRotation);
     this.player.root.position.copy(this.currentLevelData.spawnPoint);
     this.player.setHeading(this.currentLevelData.spawnRotation);
@@ -212,15 +260,13 @@ export class ThreeAdventureEngine {
   public handleTouchLook(dx: number, dy: number) {
     this.cameraController.yaw -= dx * 0.006;
     this.cameraController.pitch += dy * 0.006;
-    this.cameraController.pitch = Math.max(0.08, Math.min(1.22, this.cameraController.pitch));
+    this.cameraController.pitch = Math.max(0.08, Math.min(1.28, this.cameraController.pitch));
   }
 
   public triggerJump() {
     this.keys["jump"] = true;
     adventureAudio.playJump();
-    setTimeout(() => {
-      this.keys["jump"] = false;
-    }, 150);
+    setTimeout(() => { this.keys["jump"] = false; }, 150);
   }
 
   public triggerInteract() {
@@ -238,18 +284,9 @@ export class ThreeAdventureEngine {
       this.canvas.focus();
       this.cameraController.onPointerDown(e.clientX, e.clientY);
     });
-    window.addEventListener("mousemove", (e) =>
-      this.cameraController.onPointerMove(e.clientX, e.clientY),
-    );
+    window.addEventListener("mousemove", (e) => this.cameraController.onPointerMove(e.clientX, e.clientY));
     window.addEventListener("mouseup", () => this.cameraController.onPointerUp());
-    this.canvas.addEventListener(
-      "wheel",
-      (e) => {
-        e.preventDefault();
-        this.cameraController.onWheel(e.deltaY);
-      },
-      { passive: false },
-    );
+    this.canvas.addEventListener("wheel", (e) => { e.preventDefault(); this.cameraController.onWheel(e.deltaY); }, { passive: false });
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
@@ -257,15 +294,7 @@ export class ThreeAdventureEngine {
     const key = e.key.toLowerCase();
     const code = e.code;
 
-    // Prevent default webpage scrolling when game keys are pressed
-    if (
-      key === " " ||
-      code === "Space" ||
-      key === "arrowup" ||
-      key === "arrowdown" ||
-      key === "arrowleft" ||
-      key === "arrowright"
-    ) {
+    if (key === " " || code === "Space" || key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright") {
       e.preventDefault();
     }
 
@@ -292,47 +321,30 @@ export class ThreeAdventureEngine {
     const height = this.canvas.clientHeight;
     this.cameraController.resize(width / height);
     this.renderer.setSize(width, height, false);
+    if (this.composer) this.composer.setSize(width, height);
   };
 
   private animate = (time: number) => {
     const dt = Math.min((time - this.lastTime) / 1000, 0.08);
     this.lastTime = time;
 
-    // 1. Update Player Physics & Collisions
     if (this.currentLevelData) {
-      this.physics.update(
-        dt,
-        this.keys,
-        this.cameraController.yaw,
-        this.currentLevelData.colliders,
-        this.isPaused,
-        this.touchVector,
-      );
-
+      this.physics.update(dt, this.keys, this.cameraController.yaw, this.currentLevelData.colliders, this.isPaused, this.touchVector);
       this.player.root.position.copy(this.physics.state.position);
       this.player.setHeading(this.physics.state.direction);
       this.player.updateAnimation(dt, this.physics.state.animState);
 
-      // Footstep Sound updates
-      adventureAudio.updateFootsteps(
-        dt,
-        this.physics.state.isMoving,
-        this.physics.state.isRunning,
-        this.physics.state.isGrounded,
-      );
-
-      // 2. Update Third-Person Chase Camera with Collision Awareness
+      adventureAudio.updateFootsteps(dt, this.physics.state.isMoving, this.physics.state.isRunning, this.physics.state.isGrounded);
       this.cameraController.update(this.player.root.position, dt, this.currentLevelData.colliders);
-
-      // 3. Update 3D Proximity Detection
       this.updateProximity();
-
-      // 4. Update Level Animated Props (water, torches, dust)
       this.currentLevelData.animatedProps.update(dt, time / 1000);
     }
 
-    // 5. Render Three.js Frame
-    this.renderer.render(this.scene, this.cameraController.camera);
+    if (this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.cameraController.camera);
+    }
 
     this.animFrameId = requestAnimationFrame(this.animate);
   };

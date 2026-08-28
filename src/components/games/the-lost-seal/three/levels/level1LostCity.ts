@@ -12,6 +12,8 @@ import {
   createExcavationTent,
   createDistantSkyline,
   createWeatheredBrickWall,
+  createTorch,
+  type TorchInstance,
 } from "../environmentHelpers";
 import {
   createHarappanMonumentalGate,
@@ -24,6 +26,13 @@ import {
   createHarappanWaterWell,
   createHarappanWoodenCart,
 } from "../harappanWorldBuilder";
+import {
+  createFloatingDust,
+  createRuneGlow,
+  createActivationPulse,
+  type RuneGlow,
+  type ActivationPulse,
+} from "../vfx";
 
 export interface LevelSceneResult {
   group: THREE.Group;
@@ -324,21 +333,86 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     "Entering Level 2: The Merchant Quarter...",
   );
 
+  // ── TORCHES ────────────────────────────────────────────────────────────────
+  // Boulevard torches — paired every ~12m along the central road
+  const torches: TorchInstance[] = [];
+  const torchPositions: [number, number, number, number, number][] = [
+    // [x, y, z, wallDir, flickerOffset]
+    [ 5.5, 1.4,  16,  Math.PI,       0.0],
+    [-5.5, 1.4,  16,  0,             0.7],
+    [ 5.5, 1.4,   4,  Math.PI,       1.4],
+    [-5.5, 1.4,   4,  0,             2.1],
+    [ 5.5, 1.4,  -8,  Math.PI,       2.8],
+    [-5.5, 1.4,  -8,  0,             0.3],
+    [ 5.5, 1.4, -20,  Math.PI,       1.1],
+    [-5.5, 1.4, -20,  0,             1.8],
+    // Gate approach torches
+    [ 2.8, 2.2, -30,  Math.PI / 2,   0.5],
+    [-2.8, 2.2, -30, -Math.PI / 2,   1.3],
+    // Great Bath torches
+    [ 8.0, 1.6,   0,  Math.PI * 0.75, 2.2],
+    [-8.0, 1.6,   0,  Math.PI * 1.25, 0.9],
+  ];
+  for (const [x, y, z, dir, offset] of torchPositions) {
+    const torch = createTorch(x, y, z, dir, offset);
+    group.add(torch.group);
+    torches.push(torch);
+  }
+
+  // ── FLOATING DUST PARTICLES ────────────────────────────────────────────────
+  const dust = createFloatingDust(200, 32);
+  group.add(dust.points);
+
+  // ── RUNE GLOWS on interactive objects ─────────────────────────────────────
+  const runeGlows: RuneGlow[] = [];
+
+  // Logbook rune
+  const runeLogbook = createRuneGlow(12, 0.9, 22, 0);
+  group.add(runeLogbook.group);
+  runeGlows.push(runeLogbook);
+
+  // Great Bath rune
+  const runeBath = createRuneGlow(0, -1.6, 0, Math.PI / 2);
+  group.add(runeBath.group);
+  runeGlows.push(runeBath);
+
+  // Northern Trench rune
+  const runeTrench = createRuneGlow(-7, 0.85, -20, 0);
+  group.add(runeTrench.group);
+  runeGlows.push(runeTrench);
+
+  // North Gate rune
+  const runeGate = createRuneGlow(0, 1.2, -24, 0);
+  group.add(runeGate.group);
+  runeGlows.push(runeGate);
+
+  // ── ACTIVATION PULSE ───────────────────────────────────────────────────────
+  const activationPulse: ActivationPulse = createActivationPulse(0x00dddd);
+  group.add(activationPulse.mesh);
+
   return {
     group,
     colliders,
     interactiveEntities,
     spawnPoint: new THREE.Vector3(0, 0, 26),
     spawnRotation: Math.PI,
-    sunColor: 0xffedd0, // Radiant warm golden sunrise sunlight
+    sunColor: 0xffedd0,
     sunIntensity: 2.8,
-    ambientColor: 0x8aa8c8, // Soft azure sky ambient bounce
+    ambientColor: 0x8aa8c8,
     fogColor: 0xe8cfb0,
     fogDensity: 0.007,
     animatedProps: {
-      update: (_dt, time) => {
+      update: (dt, time) => {
         // Water caustic wave oscillation
         greatBath.waterMesh.position.y = -3.2 + 1.4 + Math.sin(time * 2.4) * 0.035;
+        // Torch flicker
+        for (const torch of torches) torch.update(time);
+        // Dust drift
+        dust.update(dt, time);
+        // Rune rotation + pulse
+        for (const rune of runeGlows) rune.update(time);
+        // Activation pulse expand
+        activationPulse.update(dt);
       },
     },
   };

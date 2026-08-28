@@ -422,3 +422,128 @@ export function createWeatheredBrickWall(
 
   return wallGroup;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TORCH WITH FLICKERING FLAME VFX
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface TorchInstance {
+  group: THREE.Group;
+  /** Call every frame with elapsed time to animate the flame */
+  update: (time: number) => void;
+}
+
+/**
+ * Creates a stylized wall/floor torch with animated flame cone, emissive glow,
+ * and a flickering PointLight that bloom picks up beautifully.
+ *
+ * @param x,y,z   World position of torch base
+ * @param wallDir  Optional rotation.y so bracket faces wall (e.g. Math.PI = face south)
+ */
+export function createTorch(
+  x: number,
+  y: number,
+  z: number,
+  wallDir = 0,
+  flickerOffset = 0,
+): TorchInstance {
+  const group = new THREE.Group();
+  group.position.set(x, y, z);
+  group.rotation.y = wallDir;
+
+  // Dark iron bracket
+  const bracketMat = new THREE.MeshStandardMaterial({ color: 0x2a1a0a, roughness: 0.8, metalness: 0.5 });
+
+  // Vertical shaft
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.7, 8), bracketMat);
+  shaft.position.y = 0.35;
+  shaft.castShadow = true;
+  group.add(shaft);
+
+  // Horizontal bracket arm
+  const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.3, 8), bracketMat);
+  arm.rotation.z = Math.PI / 2;
+  arm.position.set(0.15, 0.7, 0);
+  group.add(arm);
+
+  // Terracotta torch bowl
+  const bowlMat = new THREE.MeshStandardMaterial({ color: 0x8b3a12, roughness: 0.7 });
+  const bowl = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.06, 0.14, 10), bowlMat);
+  bowl.position.set(0.3, 0.7, 0);
+  bowl.castShadow = true;
+  group.add(bowl);
+
+  // Flame cone — base (bright amber core)
+  const flameMat = new THREE.MeshStandardMaterial({
+    color: 0xffaa22,
+    emissive: new THREE.Color(0xff6600),
+    emissiveIntensity: 3.5,
+    transparent: true,
+    opacity: 0.92,
+    depthWrite: false,
+  });
+  const flameGeo = new THREE.ConeGeometry(0.07, 0.28, 8);
+  const flame = new THREE.Mesh(flameGeo, flameMat);
+  flame.position.set(0.3, 0.92, 0);
+  group.add(flame);
+
+  // Flame tip — brighter white-yellow tip
+  const flameTipMat = new THREE.MeshStandardMaterial({
+    color: 0xffeebb,
+    emissive: new THREE.Color(0xffdd55),
+    emissiveIntensity: 5.0,
+    transparent: true,
+    opacity: 0.78,
+    depthWrite: false,
+  });
+  const flameTip = new THREE.Mesh(new THREE.ConeGeometry(0.035, 0.18, 8), flameTipMat);
+  flameTip.position.set(0.3, 1.08, 0);
+  group.add(flameTip);
+
+  // Flickering warm PointLight — bloom will catch this beautifully
+  const torchLight = new THREE.PointLight(0xff8833, 2.2, 7.5, 1.6);
+  torchLight.position.set(0.3, 0.95, 0);
+  torchLight.castShadow = false; // No shadow per torch = big perf win
+  group.add(torchLight);
+
+  // Subtle emissive bowl glow
+  const bowlGlowMat = new THREE.MeshStandardMaterial({
+    color: 0xff4400,
+    emissive: new THREE.Color(0xff3300),
+    emissiveIntensity: 1.8,
+    transparent: true,
+    opacity: 0.6,
+    depthWrite: false,
+  });
+  const bowlGlow = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), bowlGlowMat);
+  bowlGlow.position.set(0.3, 0.77, 0);
+  group.add(bowlGlow);
+
+  // Animation function — called every frame with elapsed seconds
+  const update = (time: number) => {
+    const t = time + flickerOffset;
+
+    // Natural irregular flicker using multiple sine waves
+    const flicker =
+      0.85 +
+      Math.sin(t * 7.3 + flickerOffset) * 0.12 +
+      Math.sin(t * 13.7 + flickerOffset * 1.3) * 0.06 +
+      Math.sin(t * 3.1 + flickerOffset * 0.7) * 0.08;
+
+    torchLight.intensity = 2.2 * flicker;
+    flameMat.emissiveIntensity = 3.5 * flicker;
+    flameTipMat.emissiveIntensity = 5.0 * flicker;
+
+    // Flame sway — subtle lean
+    const sway = Math.sin(t * 4.2 + flickerOffset) * 0.04;
+    flame.rotation.z = sway;
+    flameTip.rotation.z = sway * 1.3;
+
+    // Flame breathe (scale)
+    const breathe = 0.92 + Math.sin(t * 8.8 + flickerOffset) * 0.08;
+    flame.scale.set(breathe, 0.9 + (1 - breathe) * 0.5, breathe);
+    flameTip.scale.set(breathe * 0.8, breathe, breathe * 0.8);
+  };
+
+  return { group, update };
+}
