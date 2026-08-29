@@ -2,6 +2,26 @@
 
 Build the frontend foundation for a web platform called NAVYUVA — Heritage & Culture.
 
+## Quick Start (Windows)
+
+1. Ensure **Node.js** (v18+ recommended) is installed.
+2. Clone the repository and open the project directory:
+   ```bash
+   git clone https://github.com/Yogya77/navyuva-frontend-foundation.git
+   cd navyuva-frontend-foundation
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+5. Open the local URL displayed in the terminal (e.g. `http://localhost:3000`).
+
+---
+
 This is a prototype for SIH Problem Statement 26208 under the Heritage & Culture theme. The purpose of NAVYUVA is to make learning about civilization, history and culture interactive through historical exploration games, artifact discovery, clues, quizzes, and a virtual museum.
 
 IMPORTANT:

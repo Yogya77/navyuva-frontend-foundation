@@ -13,6 +13,9 @@ export class ThirdPersonCamera {
   public targetDistance = 6.2; // Desired distance
   public currentDistance = 6.2; // Actual distance after collision checks
 
+  // Cinematic override state
+  public isCinematic = false;
+
   private isDragging = false;
   private prevPointerX = 0;
   private prevPointerY = 0;
@@ -21,7 +24,44 @@ export class ThirdPersonCamera {
     this.camera = new THREE.PerspectiveCamera(52, aspect, 0.1, 200);
   }
 
+  public setCinematicTransform(pos: THREE.Vector3, lookAt: THREE.Vector3, dt: number) {
+    this.isCinematic = true;
+    const damp = Math.min(1.0, dt * 10);
+    this.currentPosition.lerp(pos, damp);
+    this.currentLookAt.lerp(lookAt, damp);
+    this.camera.position.copy(this.currentPosition);
+    this.camera.lookAt(this.currentLookAt);
+  }
+
+  public snapToThirdPerson(playerPos: THREE.Vector3, heading = Math.PI) {
+    this.isCinematic = false;
+    this.yaw = heading;
+    this.pitch = 0.38;
+    this.targetDistance = 6.2;
+    this.currentDistance = 6.2;
+
+    this.target.copy(playerPos);
+    this.target.y += 1.35;
+
+    const cosPitch = Math.cos(this.pitch);
+    const sinPitch = Math.sin(this.pitch);
+    const sinYaw = Math.sin(this.yaw);
+    const cosYaw = Math.cos(this.yaw);
+
+    this.currentPosition.set(
+      this.target.x - sinYaw * cosPitch * this.currentDistance,
+      Math.max(0.7, this.target.y + sinPitch * this.currentDistance),
+      this.target.z - cosYaw * cosPitch * this.currentDistance,
+    );
+    this.currentLookAt.copy(this.target);
+
+    this.camera.position.copy(this.currentPosition);
+    this.camera.lookAt(this.currentLookAt);
+  }
+
   public update(playerPos: THREE.Vector3, dt: number, colliders: BoxCollider3D[] = []) {
+    if (this.isCinematic) return;
+
     this.target.copy(playerPos);
     this.target.y += 1.35; // Look at upper chest & head level
 

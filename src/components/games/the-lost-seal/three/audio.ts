@@ -223,6 +223,68 @@ class AdventureSoundEngine {
       // Safe catch
     }
   }
+
+  public playCinematicTone() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const freqs = [110, 164.81, 220, 329.63]; // A2, E3, A3, E4 warm ambient fifth chord
+      freqs.forEach((freq, i) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+
+        const targetVol = i === 0 ? 0.05 : 0.035;
+        gain.gain.setValueAtTime(0.001, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(targetVol, this.ctx.currentTime + 1.2);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 3.8);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(this.ctx.currentTime);
+        osc.stop(this.ctx.currentTime + 4.0);
+      });
+    } catch {
+      // Safe catch
+    }
+  }
+
+  public playStoryReveal() {
+    if (this.isMuted) return;
+    try {
+      this.init();
+      if (!this.ctx) return;
+
+      const notes = [440, 554.37, 659.25, 880]; // A4, C#5, E5, A5
+      notes.forEach((freq, i) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime + i * 0.08);
+
+        gain.gain.setValueAtTime(0, this.ctx.currentTime + i * 0.08);
+        gain.gain.linearRampToValueAtTime(0.08, this.ctx.currentTime + i * 0.08 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + i * 0.08 + 0.6);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(this.ctx.currentTime + i * 0.08);
+        osc.stop(this.ctx.currentTime + i * 0.08 + 0.65);
+      });
+    } catch {
+      // Safe catch
+    }
+  }
 }
 
 export const adventureAudio = new AdventureSoundEngine();
+

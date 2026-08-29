@@ -48,6 +48,8 @@ export interface LevelSceneResult {
   animatedProps: {
     update: (dt: number, time: number) => void;
   };
+  triggerPulse?: (x: number, y: number, z: number) => void;
+  onEntityInspected?: (id: string) => void;
 }
 
 export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneResult {
@@ -130,7 +132,8 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
   // 6. Perimeter Retaining Walls with Stepped Crenellations
   group.add(createWeatheredBrickWall(mats, colliders, -28, 0, 0, 2.6, 5.4, 82)); // West Citadel Wall
   group.add(createWeatheredBrickWall(mats, colliders, 28, 0, 0, 2.6, 5.4, 82)); // East Citadel Wall
-  group.add(createWeatheredBrickWall(mats, colliders, 0, 0, -40, 56, 5.4, 2.6)); // North Boundary Wall
+  group.add(createWeatheredBrickWall(mats, colliders, -17, 0, -40, 26, 5.4, 2.6)); // North Boundary Wall (West Wing)
+  group.add(createWeatheredBrickWall(mats, colliders, 17, 0, -40, 26, 5.4, 2.6));  // North Boundary Wall (East Wing)
   group.add(createWeatheredBrickWall(mats, colliders, -17, 0, 40, 26, 5.6, 2.6));
   group.add(createWeatheredBrickWall(mats, colliders, 17, 0, 40, 26, 5.6, 2.6));
 
@@ -247,7 +250,7 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
   }
 
   // 14. CINEMATIC LEVEL 1 STORY & PUZZLE PROGRESSION ENTITIES
-  // Quest Step 1: Excavation Logbook at the Sorting Station
+  // Quest Step 1: Field Journal at the Sorting Station
   const logbookGroup = new THREE.Group();
   const logMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.5), mats.clothTent);
   logMesh.position.y = 1.05;
@@ -256,30 +259,60 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
   addEntity(
     "camp_logbook",
     "marker",
-    "Excavation Logbook & Field Calipers",
-    "Read Excavation Logbook",
+    "DK-G Archaeological Field Journal",
+    "Examine Field Journal",
     -13,
     0,
     10,
     logbookGroup,
-    "The logbook notes an uncatalogued votive deposit inside the Great Bath reservoir! Explore the pool.",
+    "The logbook reveals the Master Steatite Seal is missing! Inspect the excavation dig trench stratigraphy.",
   );
 
-  // Quest Step 2: Painted Red Ware Amphorae inside the Great Bath
-  const pottery = createPotteryCluster(mats);
+  // Quest Step 2: Stratigraphy Profile in Excavation Trench
+  const trenchMarkerGroup = new THREE.Group();
+  const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8), mats.torchWood);
+  stake.position.y = 0.6;
+  stake.castShadow = true;
+  trenchMarkerGroup.add(stake);
+  const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.02), mats.clothTrim);
+  flag.position.set(0.2, 1.0, 0);
+  trenchMarkerGroup.add(flag);
   addEntity(
-    "bath_pottery",
-    "pottery",
-    "Submerged Storage Amphorae",
-    "Inspect Votive Amphora",
+    "trench_strata",
+    "mound",
+    "Excavation Strata (DK-G Profile)",
+    "Inspect Stratigraphic Strata",
+    -15,
+    0,
+    18,
+    trenchMarkerGroup,
+    "Mature Harappan stratum confirmed! Search the Great Bath and operate the hydraulic sluice valves.",
+  );
+
+  // Quest Step 3: Great Bath Hydraulic Sluice Valve Control (Environmental Puzzle)
+  const sluiceGroup = new THREE.Group();
+  const valveBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 0.8, 12), mats.goldBrass);
+  valveBase.position.y = 0.4;
+  valveBase.castShadow = true;
+  sluiceGroup.add(valveBase);
+  const valveWheel = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 8, 16), mats.goldBrass);
+  valveWheel.position.set(0, 0.85, 0);
+  valveWheel.rotation.x = Math.PI / 2;
+  valveWheel.castShadow = true;
+  sluiceGroup.add(valveWheel);
+  addEntity(
+    "bath_sluice",
+    "water_puzzle",
+    "Great Bath Hydraulic Sluice System",
+    "Operate Sluice Valves",
     10,
     0,
     -6,
-    pottery,
-    "A carved soapstone tablet was uncovered! Study it at the Northern Excavation Trench.",
+    sluiceGroup,
+    "Sluice gates engaged! Synthesize trade records at the Northern Scribe Station.",
   );
 
-  // Quest Step 3: Inscribed Soapstone Testing Slab at the Northern Trench
+  // Quest Step 4: Scribe Station Ledger Archives (Accounting Puzzle)
   const slabGroup = new THREE.Group();
   const slab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.9), mats.steatiteSeal);
   slab.position.y = 0.1;
@@ -287,17 +320,17 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
   slabGroup.add(slab);
   addEntity(
     "northern_tablet",
-    "tablet",
-    "Inscribed Soapstone Testing Slab",
-    "Study Indus Glyphs",
+    "merchant_puzzle",
+    "Scribe Station Ledger Archives",
+    "Decipher Merchant Guild Ledger",
     -7,
     0,
     -20,
     slabGroup,
-    "The tablet describes the seal locking the Monumental North Gate! Examine the Gate Seal Impression.",
+    "Merchant House 7 identified! Examine the North Gate Clay Bulla to confirm passage clearance.",
   );
 
-  // Quest Step 4: Damaged Clay Seal Impression by the North Gate
+  // Quest Step 5: Damaged Clay Bulla Tag by the North Gate
   const sealImpGroup = new THREE.Group();
   const sealImp = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.12, 16), mats.brickDark);
   sealImp.position.y = 0.06;
@@ -306,16 +339,16 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
   addEntity(
     "seal_impression",
     "seal_impression",
-    "Monumental Gate Seal Impression",
-    "Decipher Gate Impression",
+    "Monumental Gate Clay Bulla",
+    "Inspect Magistrate Bulla Tag",
     0,
     0,
     -24,
     sealImpGroup,
-    "The path into the Merchant Quarter is open! Pass through the northern archway.",
+    "Northern passage clearance authorized! Pass through the monumental archway into the Merchant Quarter.",
   );
 
-  // Quest Step 5: Monumental North Archway Portal leading into Level 2
+  // Quest Step 6: Monumental North Archway Portal leading into Level 2
   const northPortalGroup = new THREE.Group();
   const northGateFrame = new THREE.Mesh(new THREE.BoxGeometry(5.0, 6.0, 1.6), mats.wallCap);
   northGateFrame.position.y = 3.0;
@@ -325,12 +358,12 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     "passage_gate",
     "passage_gate",
     "Archway to Merchant Quarter",
-    "Enter Level 2: Merchant Quarter",
+    "Enter Chapter 2: Merchant Quarter",
     0,
     0,
     -37.8,
     northPortalGroup,
-    "Entering Level 2: The Merchant Quarter...",
+    "Entering Chapter 2: The Merchant Quarter...",
   );
 
   // ── TORCHES ────────────────────────────────────────────────────────────────
@@ -415,5 +448,15 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
         activationPulse.update(dt);
       },
     },
+    triggerPulse: (x: number, y: number, z: number) => {
+      activationPulse.trigger(x, y, z);
+    },
+    onEntityInspected: (id: string) => {
+      const ent = interactiveEntities.find(e => e.id === id);
+      if (ent) {
+        activationPulse.trigger(ent.position.x, ent.position.y + 0.5, ent.position.z);
+      }
+    },
   };
 }
+

@@ -1,4 +1,4 @@
-﻿import * as THREE from "three";
+import * as THREE from "three";
 import { createStylizedMaterials, type StylizedMaterialPalette } from "./materials";
 import { createStylizedPlayer, type StylizedPlayer } from "./character";
 import { createLevel1LostCity, type LevelSceneResult } from "./levels/level1LostCity";
@@ -46,6 +46,17 @@ export class ThreeAdventureEngine {
     render: () => void;
     setSize: (w: number, h: number) => void;
   } | null = null;
+
+  // Cinematic system. The finale uses its own camera track so it never replays
+  // the opening fly-through or teleports the player back to the level spawn.
+  private isCinematicIntro = false;
+  private cinematicKind: "intro" | "finale" = "intro";
+  private cinematicDuration = 15;
+  private cinematicTimer = 0;
+  private currentShotIndex = -1;
+  private onCinematicShotChange: ((shotIndex: number, progress: number) => void) | null = null;
+  private onCinematicComplete: (() => void) | null = null;
+
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -230,7 +241,14 @@ export class ThreeAdventureEngine {
 
   public markEntityInspected(entityId: string) {
     const ent = this.currentLevelData?.interactiveEntities.find((e) => e.id === entityId);
-    if (ent) ent.isInspected = true;
+    if (ent) {
+      ent.isInspected = true;
+      this.currentLevelData?.onEntityInspected?.(entityId);
+    }
+  }
+
+  public triggerActivationPulse(x: number, y: number, z: number) {
+    this.currentLevelData?.triggerPulse?.(x, y, z);
   }
 
   public openGate(gateId: string) {
@@ -240,6 +258,7 @@ export class ThreeAdventureEngine {
       if (idx !== -1) {
         this.currentLevelData.colliders.splice(idx, 1);
       }
+      this.currentLevelData.triggerPulse?.(0, 2.1, -30.5);
     }
   }
 
@@ -250,6 +269,19 @@ export class ThreeAdventureEngine {
       if (idx !== -1) {
         this.currentLevelData.colliders.splice(idx, 1);
       }
+      this.currentLevelData.triggerPulse?.(0, 1.0, 2);
+    }
+  }
+
+  public setEntityEnabled(entityId: string, enabled: boolean) {
+    const entity = this.currentLevelData?.interactiveEntities.find((item) => item.id === entityId);
+    if (!entity) return;
+
+    entity.data = { ...entity.data, enabled };
+    if (entity.mesh) entity.mesh.visible = enabled;
+    if (!enabled && this.nearbyEntity?.id === entityId) {
+      this.nearbyEntity = null;
+      this.callbacks.onNearbyEntityChange(null);
     }
   }
 
@@ -269,8 +301,65 @@ export class ThreeAdventureEngine {
     setTimeout(() => { this.keys["jump"] = false; }, 150);
   }
 
+  public startCinematicIntro(
+    onShotChange?: (shotIndex: number, progress: number) => void,
+    onComplete?: () => void,
+  ) {
+    this.isCinematicIntro = true;
+    this.cinematicKind = "intro";
+    this.cinematicDuration = 15;
+    this.cinematicTimer = 0;
+    this.currentShotIndex = -1;
+    this.onCinematicShotChange = onShotChange || null;
+    this.onCinematicComplete = onComplete || null;
+    adventureAudio.playCinematicTone();
+  }
+
+  public startFinaleCinematic(
+    onShotChange?: (shotIndex: number, progress: number) => void,
+    onComplete?: () => void,
+  ) {
+    this.isCinematicIntro = true;
+    this.cinematicKind = "finale";
+    this.cinematicDuration = 7.2;
+    this.cinematicTimer = 0;
+    this.currentShotIndex = -1;
+    this.onCinematicShotChange = onShotChange || null;
+    this.onCinematicComplete = onComplete || null;
+    adventureAudio.playCinematicTone();
+  }
+
+  public skipCinematicIntro() {
+    if (!this.isCinematicIntro) return;
+    this.isCinematicIntro = false;
+    this.cinematicTimer = 0;
+    this.currentShotIndex = -1;
+
+    if (this.currentLevelData) {
+      const cameraAnchor = this.cinematicKind === "finale"
+        ? this.player.root.position
+        : this.currentLevelData.spawnPoint;
+      const cameraHeading = this.cinematicKind === "finale"
+        ? this.physics.state.direction
+        : this.currentLevelData.spawnRotation;
+      this.cameraController.snapToThirdPerson(
+        cameraAnchor,
+        cameraHeading,
+      );
+    }
+
+    const cb = this.onCinematicComplete;
+    this.onCinematicComplete = null;
+    this.onCinematicShotChange = null;
+    if (cb) cb();
+  }
+
+  public isCinematicActive(): boolean {
+    return this.isCinematicIntro;
+  }
+
   public triggerInteract() {
-    if (!this.isPaused && this.nearbyEntity) {
+    if (!this.isPaused && !this.isCinematicIntro && this.nearbyEntity) {
       this.callbacks.onInteract(this.nearbyEntity);
     }
   }
@@ -282,17 +371,41 @@ export class ThreeAdventureEngine {
 
     this.canvas.addEventListener("mousedown", (e) => {
       this.canvas.focus();
-      this.cameraController.onPointerDown(e.clientX, e.clientY);
+      if (!this.isCinematicIntro) {
+        this.cameraController.onPointerDown(e.clientX, e.clientY);
+      }
     });
-    window.addEventListener("mousemove", (e) => this.cameraController.onPointerMove(e.clientX, e.clientY));
-    window.addEventListener("mouseup", () => this.cameraController.onPointerUp());
-    this.canvas.addEventListener("wheel", (e) => { e.preventDefault(); this.cameraController.onWheel(e.deltaY); }, { passive: false });
+    window.addEventListener("mousemove", (e) => {
+      if (!this.isCinematicIntro) {
+        this.cameraController.onPointerMove(e.clientX, e.clientY);
+      }
+    });
+    window.addEventListener("mouseup", () => {
+      if (!this.isCinematicIntro) {
+        this.cameraController.onPointerUp();
+      }
+    });
+    this.canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (!this.isCinematicIntro) {
+        this.cameraController.onWheel(e.deltaY);
+      }
+    }, { passive: false });
     this.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 
   private onKeyDown = (e: KeyboardEvent) => {
     const key = e.key.toLowerCase();
     const code = e.code;
+
+    // Skip cinematic on Space, Escape, or Enter
+    if (this.isCinematicIntro) {
+      if (key === "escape" || key === " " || code === "Space" || key === "enter") {
+        e.preventDefault();
+        this.skipCinematicIntro();
+        return;
+      }
+    }
 
     if (key === " " || code === "Space" || key === "arrowup" || key === "arrowdown" || key === "arrowleft" || key === "arrowright") {
       e.preventDefault();
@@ -301,10 +414,12 @@ export class ThreeAdventureEngine {
     this.keys[key] = true;
 
     if (key === " " || code === "Space") {
-      adventureAudio.playJump();
+      if (!this.isCinematicIntro) {
+        adventureAudio.playJump();
+      }
     }
 
-    if (key === "e" && !this.isPaused && this.nearbyEntity) {
+    if (key === "e" && !this.isPaused && !this.isCinematicIntro && this.nearbyEntity) {
       e.preventDefault();
       this.callbacks.onInteract(this.nearbyEntity);
     }
@@ -329,16 +444,136 @@ export class ThreeAdventureEngine {
     this.lastTime = time;
 
     if (this.currentLevelData) {
-      this.physics.update(dt, this.keys, this.cameraController.yaw, this.currentLevelData.colliders, this.isPaused, this.touchVector);
-      this.player.root.position.copy(this.physics.state.position);
-      this.player.setHeading(this.physics.state.direction);
-      this.player.updateAnimation(dt, this.physics.state.animState);
+      if (this.isCinematicIntro) {
+        this.cinematicTimer += dt;
 
-      adventureAudio.updateFootsteps(dt, this.physics.state.isMoving, this.physics.state.isRunning, this.physics.state.isGrounded);
-      this.cameraController.update(this.player.root.position, dt, this.currentLevelData.colliders);
-      this.updateProximity();
-      this.currentLevelData.animatedProps.update(dt, time / 1000);
+        // Cinematic keyframe sequences. The finale focuses the newly charged
+        // portal and altar instead of reusing the Level 1 establishing shots.
+        // Shot 0: (0 to 3.2s) - High aerial establishing pan overlooking Citadel & distant skyline
+        // Shot 1: (3.2 to 6.8s) - Descending track along the central boulevard & Great Bath
+        // Shot 2: (6.8 to 10.0s) - Low tracking shot passing northern excavation dig trench & inscribed slab
+        // Shot 3: (10.0 to 12.8s) - North Monumental Gateway flanked by flickering torches
+        // Shot 4: (12.8 to 15.0s) - Crane glide descending toward the player explorer
+        const introShots = [
+          {
+            dur: 3.2,
+            sPos: new THREE.Vector3(0, 26, 52),
+            ePos: new THREE.Vector3(-6, 20, 36),
+            sLook: new THREE.Vector3(0, 3, 4),
+            eLook: new THREE.Vector3(0, 2, 0),
+          },
+          {
+            dur: 3.6,
+            sPos: new THREE.Vector3(16, 12, 22),
+            ePos: new THREE.Vector3(6, 6, 2),
+            sLook: new THREE.Vector3(0, 0, 4),
+            eLook: new THREE.Vector3(0, -1.0, 0),
+          },
+          {
+            dur: 3.2,
+            sPos: new THREE.Vector3(-14, 5, -8),
+            ePos: new THREE.Vector3(-8, 3.2, -18),
+            sLook: new THREE.Vector3(-7, 0.5, -20),
+            eLook: new THREE.Vector3(-7, 0.2, -20),
+          },
+          {
+            dur: 2.8,
+            sPos: new THREE.Vector3(5, 4.5, -22),
+            ePos: new THREE.Vector3(0, 3.8, -16),
+            sLook: new THREE.Vector3(0, 3.2, -32),
+            eLook: new THREE.Vector3(0, 3.5, -34),
+          },
+          {
+            dur: 2.2,
+            sPos: new THREE.Vector3(0, 4.2, 35),
+            ePos: new THREE.Vector3(0, 2.3, 32.2),
+            sLook: new THREE.Vector3(0, 1.4, 26),
+            eLook: new THREE.Vector3(0, 1.35, 26),
+          },
+        ];
+        const finaleShots = [
+          {
+            dur: 2.1,
+            sPos: new THREE.Vector3(10, 6.4, -1),
+            ePos: new THREE.Vector3(5.6, 4.8, -7.5),
+            sLook: new THREE.Vector3(0, 2.0, -10),
+            eLook: new THREE.Vector3(0, 3.0, -13),
+          },
+          {
+            dur: 2.5,
+            sPos: new THREE.Vector3(5.6, 4.8, -7.5),
+            ePos: new THREE.Vector3(-3.2, 4.2, -13.8),
+            sLook: new THREE.Vector3(0, 3.2, -14.7),
+            eLook: new THREE.Vector3(0, 3.5, -15.2),
+          },
+          {
+            dur: 2.6,
+            sPos: new THREE.Vector3(-3.2, 4.2, -13.8),
+            ePos: new THREE.Vector3(0, 3.8, -15.8),
+            sLook: new THREE.Vector3(0, 3.4, -15.2),
+            eLook: new THREE.Vector3(0, 3.1, -12),
+          },
+        ];
+        const shots = this.cinematicKind === "finale" ? finaleShots : introShots;
+
+        let accumulated = 0;
+        let activeShot = shots[shots.length - 1]!;
+        let shotIdx = shots.length - 1;
+        let localT = 1.0;
+
+        for (let i = 0; i < shots.length; i++) {
+          const s = shots[i]!;
+          if (this.cinematicTimer < accumulated + s.dur) {
+            activeShot = s;
+            shotIdx = i;
+            localT = (this.cinematicTimer - accumulated) / s.dur;
+            break;
+          }
+          accumulated += s.dur;
+        }
+
+        // Smoothstep easing for cinematic smoothness
+        const easeT = localT * localT * (3 - 2 * localT);
+        const camPos = new THREE.Vector3().lerpVectors(activeShot.sPos, activeShot.ePos, easeT);
+        const camLook = new THREE.Vector3().lerpVectors(activeShot.sLook, activeShot.eLook, easeT);
+
+        this.cameraController.setCinematicTransform(camPos, camLook, dt);
+
+        if (this.currentShotIndex !== shotIdx) {
+          this.currentShotIndex = shotIdx;
+          if (this.onCinematicShotChange) {
+            this.onCinematicShotChange(shotIdx, this.cinematicTimer / this.cinematicDuration);
+          }
+        }
+
+        // Keep the explorer still during a cinematic. Only the opening scene
+        // anchors them to spawn; the finale must preserve their altar position.
+        if (this.cinematicKind === "intro") {
+          this.player.root.position.copy(this.currentLevelData.spawnPoint);
+          this.player.setHeading(this.currentLevelData.spawnRotation);
+        }
+        this.player.updateAnimation(dt, "idle");
+
+        // Keep world active (torches, dust, water caustics, runes)
+        this.currentLevelData.animatedProps.update(dt, time / 1000);
+
+        if (this.cinematicTimer >= this.cinematicDuration) {
+          this.skipCinematicIntro();
+        }
+      } else {
+        // Normal Gameplay
+        this.physics.update(dt, this.keys, this.cameraController.yaw, this.currentLevelData.colliders, this.isPaused, this.touchVector);
+        this.player.root.position.copy(this.physics.state.position);
+        this.player.setHeading(this.physics.state.direction);
+        this.player.updateAnimation(dt, this.physics.state.animState);
+
+        adventureAudio.updateFootsteps(dt, this.physics.state.isMoving, this.physics.state.isRunning, this.physics.state.isGrounded);
+        this.cameraController.update(this.player.root.position, dt, this.currentLevelData.colliders);
+        this.updateProximity();
+        this.currentLevelData.animatedProps.update(dt, time / 1000);
+      }
     }
+
 
     if (this.composer) {
       this.composer.render();
@@ -354,11 +589,11 @@ export class ThreeAdventureEngine {
 
     const pPos = this.player.root.position;
     let closest: InteractiveEntity3D | null = null;
-    let minDist = 3.2;
+    let minDist = Infinity;
 
     for (const ent of this.currentLevelData.interactiveEntities) {
       const dist = pPos.distanceTo(ent.position);
-      if (dist < ent.interactionRadius && dist < minDist) {
+      if (dist <= ent.interactionRadius && dist < minDist) {
         closest = ent;
         minDist = dist;
       }

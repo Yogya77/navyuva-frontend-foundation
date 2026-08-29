@@ -33,10 +33,10 @@ export function FloorCacheModal({ isOpen, onClose, onUnlocked }: FloorCacheModal
                 variant="outline"
                 className="border-primary/30 text-[10px] uppercase text-primary"
               >
-                Area 4 • Secret Architectural Vault
+                Sealed Sanctum • Keystone Protocol
               </Badge>
               <h2 className="font-serif text-lg font-bold text-foreground">
-                Mortared Sub-Floor Flagstone Cache
+                Sanctuary Keystone Mechanism
               </h2>
             </div>
           </div>
@@ -48,18 +48,17 @@ export function FloorCacheModal({ isOpen, onClose, onUnlocked }: FloorCacheModal
 
         <div className="mt-4 space-y-3 text-xs leading-relaxed text-muted-foreground">
           <p>
-            Underneath the merchant warehouse floor flagstones, you notice hairline seams of white
-            gypsum mortar. Prying the stone pavers loose reveals an undisturbed subterranean passage
-            leading into the <strong className="text-foreground">Sealed Chamber</strong>.
+            The paired sanctuary readings identify the Zebu authority mark and the glyph order.
+            Rotate the bronze core into alignment to release the barrier protecting the inner altar.
           </p>
           <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-3.5 text-emerald-200">
             <div className="flex items-center gap-2 font-serif font-bold text-emerald-300">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-              Subterranean Passage Discovered (+100 pts)
+              Altar Barrier Disengaged (+100 pts)
             </div>
             <p className="mt-1 text-[11px] text-emerald-100/90">
-              The doorway to the inner sanctum is now open. Walk east into Area 5 to recover the
-              master Steatite Seal!
+              The bronze lattice will retract. Climb the altar, approach the awakened vortex, and
+              let the sanctuary reveal the Master Steatite Seal.
             </p>
           </div>
         </div>
@@ -69,7 +68,7 @@ export function FloorCacheModal({ isOpen, onClose, onUnlocked }: FloorCacheModal
             onClick={handleOpenCache}
             className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
           >
-            Enter Sealed Sanctum <ArrowRight className="ml-1.5 h-4 w-4" />
+            Align Keystone <ArrowRight className="ml-1.5 h-4 w-4" />
           </Button>
         </div>
       </div>

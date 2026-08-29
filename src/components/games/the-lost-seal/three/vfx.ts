@@ -143,7 +143,7 @@ export function createRuneGlow(
 
 // ─── ACTIVATION PULSE RING ────────────────────────────────────────────────────
 export interface ActivationPulse {
-  mesh: THREE.Mesh;
+  mesh: THREE.Object3D;
   trigger: (x: number, y: number, z: number) => void;
   update: (dt: number) => void;
 }
@@ -151,6 +151,7 @@ export interface ActivationPulse {
 export function createActivationPulse(
   color: THREE.ColorRepresentation = 0x00dddd,
 ): ActivationPulse {
+  const group = new THREE.Group();
   const pulseMat = new THREE.MeshStandardMaterial({
     color,
     emissive: new THREE.Color(color),
@@ -163,16 +164,29 @@ export function createActivationPulse(
 
   const mesh = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.04, 8, 48), pulseMat);
   mesh.rotation.x = Math.PI / 2;
-  mesh.visible = false;
+  group.add(mesh);
+  const echoMat = pulseMat.clone();
+  echoMat.color.setHex(0xffbd5a);
+  echoMat.emissive.setHex(0xff7a22);
+  const echo = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.022, 8, 48), echoMat);
+  echo.rotation.x = Math.PI / 2;
+  group.add(echo);
+  const coreLight = new THREE.PointLight(color, 0, 7, 2);
+  coreLight.position.y = 0.4;
+  group.add(coreLight);
+  group.visible = false;
 
   let active = false;
   let progress = 0;
 
   const trigger = (x: number, y: number, z: number) => {
-    mesh.position.set(x, y + 0.05, z);
-    mesh.visible = true;
+    group.position.set(x, y + 0.05, z);
+    group.visible = true;
     mesh.scale.setScalar(0.2);
+    echo.scale.setScalar(0.08);
     pulseMat.opacity = 0.95;
+    echoMat.opacity = 0.75;
+    coreLight.intensity = 4.5;
     active = true;
     progress = 0;
   };
@@ -181,20 +195,24 @@ export function createActivationPulse(
     if (!active) return;
     progress += dt * 1.6;
     mesh.scale.setScalar(0.2 + progress * 2.8);
+    echo.scale.setScalar(0.08 + progress * 4.6);
+    echo.rotation.z -= dt * 1.8;
     pulseMat.opacity = Math.max(0, 0.95 - progress);
+    echoMat.opacity = Math.max(0, 0.75 - progress * 0.78);
+    coreLight.intensity = Math.max(0, 4.5 - progress * 4.5);
     if (progress >= 1) {
       active = false;
-      mesh.visible = false;
+      group.visible = false;
     }
   };
 
-  return { mesh, trigger, update };
+  return { mesh: group, trigger, update };
 }
 
 // ─── MAGICAL PORTAL (for Level 3 final chamber) ────────────────────────────────
 export interface MagicalPortal {
   group: THREE.Group;
-  update: (time: number) => void;
+  update: (time: number, charge?: number, reveal?: number) => void;
 }
 
 export function createMagicalPortal(x: number, y: number, z: number): MagicalPortal {
@@ -207,18 +225,59 @@ export function createMagicalPortal(x: number, y: number, z: number): MagicalPor
   archOuter.castShadow = true;
   group.add(archOuter);
 
-  // Inner glowing portal disc
-  const portalMat = new THREE.MeshStandardMaterial({
-    color: 0x003344,
-    emissive: new THREE.Color(0x007799),
-    emissiveIntensity: 2.2,
+  // A procedural energy surface gives the portal movement and depth without a
+  // render target or post-processing pass. It is deliberately one low-poly disc.
+  const portalMat = new THREE.ShaderMaterial({
     transparent: true,
-    opacity: 0.82,
-    side: THREE.DoubleSide,
     depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: {
+      uTime: { value: 0 },
+      uCharge: { value: 0 },
+      uReveal: { value: 0 },
+    },
+    vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `varying vec2 vUv; uniform float uTime; uniform float uCharge; uniform float uReveal;
+      void main() {
+        vec2 p = vUv - 0.5; float r = length(p); float a = atan(p.y, p.x);
+        float spiral = sin(a * 7.0 - r * 19.0 - uTime * (2.4 + uCharge * 1.8));
+        float ripples = sin(r * 28.0 - uTime * 3.2 + spiral * 1.8);
+        float edge = smoothstep(0.52, 0.08, r) * smoothstep(0.62, 0.34, r);
+        float veins = smoothstep(0.2, 0.92, spiral * 0.5 + ripples * 0.5 + 0.5);
+        vec3 deep = vec3(0.005, 0.045, 0.075);
+        vec3 cyan = vec3(0.02, 0.72, 0.9);
+        vec3 gold = vec3(1.0, 0.42, 0.08);
+        vec3 color = mix(deep, cyan, veins * (0.45 + uCharge * 0.3));
+        color = mix(color, gold, uReveal * (0.18 + veins * 0.34));
+        float alpha = edge * (0.62 + veins * 0.25 + uCharge * 0.12);
+        gl_FragColor = vec4(color, alpha);
+      }`,
   });
   const portalDisc = new THREE.Mesh(new THREE.CircleGeometry(1.65, 40), portalMat);
   group.add(portalDisc);
+
+  // Two concentric particle streams make the vortex read at a distance while
+  // staying below the cost of dozens of individual meshes.
+  const particleCount = 96;
+  const particlePositions = new Float32Array(particleCount * 3);
+  const particleSeeds = new Float32Array(particleCount * 2);
+  for (let i = 0; i < particleCount; i++) {
+    particleSeeds[i * 2] = Math.random() * Math.PI * 2;
+    particleSeeds[i * 2 + 1] = 0.2 + Math.random() * 1.5;
+  }
+  const particleGeo = new THREE.BufferGeometry();
+  particleGeo.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+  const particleMat = new THREE.PointsMaterial({
+    color: 0x7ffcff,
+    size: 0.075,
+    transparent: true,
+    opacity: 0.78,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  particles.frustumCulled = false;
+  group.add(particles);
 
   // Rotating inner rune ring
   const runeRingMat = new THREE.MeshStandardMaterial({
@@ -238,11 +297,28 @@ export function createMagicalPortal(x: number, y: number, z: number): MagicalPor
   const portalLight = new THREE.PointLight(0x00aacc, 2.8, 10, 1.5);
   group.add(portalLight);
 
-  const update = (time: number) => {
+  const update = (time: number, charge = 0, reveal = 0) => {
     runeRingInner.rotation.z =  time * 0.55;
     runeRingOuter.rotation.z = -time * 0.38;
-    portalMat.emissiveIntensity = 2.2 + Math.sin(time * 1.4) * 0.5;
-    portalLight.intensity = 2.8 + Math.sin(time * 2.1) * 0.6;
+    if (portalMat.uniforms["uTime"]) portalMat.uniforms["uTime"].value = time;
+    if (portalMat.uniforms["uCharge"]) portalMat.uniforms["uCharge"].value = charge;
+    if (portalMat.uniforms["uReveal"]) portalMat.uniforms["uReveal"].value = reveal;
+    runeRingMat.emissiveIntensity = 2.5 + charge * 2.0 + Math.sin(time * 1.7) * 0.6;
+    portalLight.intensity = 2.4 + charge * 2.0 + reveal * 1.8 + Math.sin(time * 2.1) * 0.6;
+    const positions = particleGeo.attributes["position"] as THREE.BufferAttribute;
+    const values = positions.array as Float32Array;
+    const speed = 0.8 + charge * 1.4 + reveal * 0.8;
+    for (let i = 0; i < particleCount; i++) {
+      const seed = particleSeeds[i * 2]!;
+      const radius = particleSeeds[i * 2 + 1]!;
+      const angle = seed + time * speed * (0.75 + radius * 0.2);
+      const contraction = 0.72 + 0.28 * Math.sin(time * 0.8 + seed);
+      values[i * 3] = Math.cos(angle) * radius * contraction;
+      values[i * 3 + 1] = Math.sin(angle * 1.7 + time) * 0.8;
+      values[i * 3 + 2] = Math.sin(angle) * radius * contraction + 0.05;
+    }
+    positions.needsUpdate = true;
+    particleMat.opacity = 0.48 + charge * 0.22 + reveal * 0.15;
   };
 
   return { group, update };

@@ -96,6 +96,62 @@ const OBJECT_DETAILS: Record<
     analysis:
       "The merchant lineage dedicated prayers here for safe passage across the Arabian Sea. But the master stamp seal was stored in a secret architectural vault.",
   },
+  camp_logbook: {
+    title: "Excavation Field Logbook & Calipers",
+    category: "Stratigraphy",
+    observation:
+      "Leather-bound excavation notes detailing Trench DK-G stratigraphy and water table measurements.",
+    analysis:
+      "Notes an uncatalogued votive deposit inside the Great Bath reservoir! The sediment layers date to Mature Harappan (2600–1900 BCE).",
+  },
+  trench_strata: {
+    title: "Excavation Trench DK-G Stratigraphy",
+    category: "Stratigraphy",
+    observation:
+      "Exposed 3-meter stratigraphic profile displaying intact Mature Harappan brick courses and alluvial silt seals.",
+    analysis:
+      "The undisturbed silt profile proves the subterranean architectural features were sealed during antiquity, preserving all votive and economic contents in situ.",
+  },
+  bath_pottery: {
+    title: "Submerged Storage Amphorae",
+    category: "Trade",
+    observation:
+      "Thick-walled terracotta vessel fragments found in the Great Bath drainage conduit.",
+    analysis:
+      "Bearing geometric slip motifs and evidence of stamped clay stopper tags used to seal trade liquids.",
+  },
+  northern_tablet: {
+    title: "Inscribed Soapstone Testing Slab",
+    category: "Epigraphy",
+    observation:
+      "A soft steatite slab fragment displaying practice engravings of the sacred feeding manger and zebu horns.",
+    analysis:
+      "Indus seal carvers practiced intaglio relief on test slabs. Seal inscriptions were carved in reverse so impressions read right-to-left.",
+  },
+  seal_impression: {
+    title: "Monumental Gate Seal Impression",
+    category: "Epigraphy",
+    observation:
+      "A baked clay bulla tag fragment bearing the seal impression of the city magistrate.",
+    analysis:
+      "Confirms that the northern monumental archway leads directly into the Merchant Quarter warehouse complex.",
+  },
+  crate: {
+    title: "Standardized Binary Chert Weights",
+    category: "Trade",
+    observation:
+      "Set of highly polished cubic chert weights following strict binary ratios (1, 2, 4, 8, 16, 32).",
+    analysis:
+      "The Indus civilization enforced strictly standardized metrology from Sindh to Gujarat, essential for guild trade taxation.",
+  },
+  tablet: {
+    title: "Merchant Guild Account Tablet",
+    category: "Epigraphy",
+    observation:
+      "Inscribed steatite tablet documenting maritime trade goods and grain export quantities.",
+    analysis:
+      "Features Indus pictographic signs alongside standardized numerical tally marks governing merchant transactions.",
+  },
 };
 
 export function ObjectInspectionModal({
@@ -105,7 +161,7 @@ export function ObjectInspectionModal({
 }: ObjectInspectionModalProps) {
   if (!entity) return null;
 
-  const details = OBJECT_DETAILS[entity.type] ?? {
+  const details = OBJECT_DETAILS[entity.id] ?? OBJECT_DETAILS[entity.type] ?? {
     title: entity.name,
     category: "Stratigraphy" as const,
     observation: "A notable archaeological feature in the ancient ruins.",

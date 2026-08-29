@@ -2,12 +2,42 @@ import * as THREE from "three";
 import type { InteractiveEntity3D, BoxCollider3D } from "../types";
 import type { StylizedMaterialPalette } from "../materials";
 import type { LevelSceneResult } from "./level1LostCity";
-import { createWeatheredBrickWall } from "../environmentHelpers";
+import {
+  createWeatheredBrickWall,
+  createTorch,
+  type TorchInstance,
+  createStylizedRock,
+  createPotteryCluster,
+} from "../environmentHelpers";
+import {
+  createFloatingDust,
+  createRuneGlow,
+  type RuneGlow,
+  createActivationPulse,
+  type ActivationPulse,
+  createMagicalPortal,
+  type MagicalPortal,
+} from "../vfx";
 
 export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelSceneResult {
   const group = new THREE.Group();
   const colliders: BoxCollider3D[] = [];
   const interactiveEntities: InteractiveEntity3D[] = [];
+  // Sanctum-specific material tuning: matte, soot-dark masonry lets the ritual
+  // metal and seal carry the eye without making the whole chamber shiny.
+  const sanctumStone = mats.wallCap.clone();
+  sanctumStone.color.setHex(0x6f5542);
+  sanctumStone.roughness = 0.93;
+  const altarMetal = mats.goldBrass.clone();
+  altarMetal.color.setHex(0x9b6c2a);
+  altarMetal.roughness = 0.52;
+  altarMetal.emissive = new THREE.Color(0x140b02);
+  const routeInlayMat = new THREE.MeshStandardMaterial({
+    color: 0x8b6235,
+    emissive: new THREE.Color(0x100703),
+    roughness: 0.82,
+    metalness: 0.08,
+  });
 
   const addEntity = (
     id: string,
@@ -21,6 +51,10 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     objectiveAfterInspect?: string,
   ) => {
     mesh.position.set(x, y, z);
+    // The seal is deliberately revealed by the portal finale. It must not be
+    // interactable through/above the altar before that reveal.
+    const enabled = id !== "steatite_seal";
+    mesh.visible = enabled;
     group.add(mesh);
 
     interactiveEntities.push({
@@ -34,129 +68,257 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
       objectiveAfterInspect,
       isInspected: false,
       mesh,
+      data: { enabled },
     });
   };
 
-  // 1. Ancient Sanctum Floor with Sacred Flagstone Patterns
-  const groundGeo = new THREE.PlaneGeometry(65, 75);
+  // 1. Vaulted Subterranean Hall Ceiling & Monumental Overhead Arch Ribs
+  const ceilingMat = new THREE.MeshStandardMaterial({
+    color: 0x1e120a,
+    roughness: 0.95,
+    side: THREE.BackSide,
+  });
+  const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(68, 78), ceilingMat);
+  ceiling.rotation.x = Math.PI / 2;
+  ceiling.position.set(0, 8.6, 0);
+  group.add(ceiling);
+
+  // Massive Corbelled Stone Vault Ribs spanning East-to-West overhead
+  for (let z = -24; z <= 24; z += 12) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(40.5, 0.7, 1.2), mats.wallCap);
+    rib.position.set(0, 8.2, z);
+    rib.castShadow = true;
+    group.add(rib);
+  }
+
+  // 2. Ancient Sanctum Floor with Multi-Level Flagstones & Water Channels
+  const groundGeo = new THREE.PlaneGeometry(68, 78);
   const ground = new THREE.Mesh(groundGeo, mats.stoneFloor);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   group.add(ground);
 
-  // Central Ceremonial Altar Runway
-  const runwayGeo = new THREE.PlaneGeometry(10, 55);
+  // Central Ceremonial Altar Runway (Raised Dark Masonry)
+  const runwayGeo = new THREE.BoxGeometry(10, 0.16, 56);
   const runway = new THREE.Mesh(runwayGeo, mats.brickDark);
-  runway.rotation.x = -Math.PI / 2;
-  runway.position.set(0, 0.02, 0);
+  runway.position.set(0, 0.08, 0);
   runway.receiveShadow = true;
   group.add(runway);
 
-  // Reflecting Water Channels flanking the altar runway
-  const leftPool = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 42), mats.water);
+  // Runway Flagstone Trim Curbs
+  const curbL = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.24, 56), sanctumStone);
+  curbL.position.set(-5.1, 0.12, 0);
+  curbL.receiveShadow = true;
+  group.add(curbL);
+
+  const curbR = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.24, 56), sanctumStone);
+  curbR.position.set(5.1, 0.12, 0);
+  curbR.receiveShadow = true;
+  group.add(curbR);
+
+  // Reflecting Sacred Water Channels flanking the runway
+  const poolBaseGeo = new THREE.BoxGeometry(3.6, 0.08, 44);
+  const poolBaseL = new THREE.Mesh(poolBaseGeo, mats.brickDark);
+  poolBaseL.position.set(-7.5, 0.02, -2);
+  group.add(poolBaseL);
+
+  const poolBaseR = new THREE.Mesh(poolBaseGeo, mats.brickDark);
+  poolBaseR.position.set(7.5, 0.02, -2);
+  group.add(poolBaseR);
+
+  const leftPool = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 43), mats.water);
   leftPool.rotation.x = -Math.PI / 2;
-  leftPool.position.set(-6.5, 0.04, -2);
+  leftPool.position.set(-7.5, 0.07, -2);
   group.add(leftPool);
 
-  const rightPool = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 42), mats.water);
+  const rightPool = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 43), mats.water);
   rightPool.rotation.x = -Math.PI / 2;
-  rightPool.position.set(6.5, 0.04, -2);
+  rightPool.position.set(7.5, 0.07, -2);
   group.add(rightPool);
 
-  // 2. Vault Enclosure Walls
-  group.add(createWeatheredBrickWall(mats, colliders, -20, 0, 0, 2.2, 8.0, 70)); // West Vault Wall
-  group.add(createWeatheredBrickWall(mats, colliders, 20, 0, 0, 2.2, 8.0, 70)); // East Vault Wall
-  group.add(createWeatheredBrickWall(mats, colliders, 0, 0, 30, 40, 8.0, 2.2)); // South Wall (Entry)
-  group.add(createWeatheredBrickWall(mats, colliders, 0, 0, -30, 40, 8.0, 2.2)); // North Sanctuary Wall
+  // Broken brass-and-stone inlays lead the player from the threshold to the
+  // keystone, barrier, and altar without adding UI arrows.
+  const routeInlays: THREE.Mesh[] = [];
+  for (const z of [20, 13, 6, -1, -8]) {
+    const inlay = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.52, 6), routeInlayMat);
+    inlay.rotation.x = -Math.PI / 2;
+    inlay.position.set(0, 0.205, z);
+    group.add(inlay);
+    routeInlays.push(inlay);
+  }
 
-  // 3. Monolithic Sanctuary Pillars with Carved Capitals
+  // 3. Vault Enclosure Perimeter Walls & Recessed Ritual Niches
+  group.add(createWeatheredBrickWall(mats, colliders, -20, 0, 0, 2.5, 8.5, 74)); // West Vault Wall
+  group.add(createWeatheredBrickWall(mats, colliders, 20, 0, 0, 2.5, 8.5, 74)); // East Vault Wall
+  group.add(createWeatheredBrickWall(mats, colliders, 0, 0, 32, 42, 8.5, 2.5)); // South Wall (Entry)
+  group.add(createWeatheredBrickWall(mats, colliders, 0, 0, -32, 42, 8.5, 2.5)); // North Sanctuary Wall
+
+  // Recessed Ritual Niches along East/West Walls with ceremonial offerings
+  for (let z = -18; z <= 18; z += 12) {
+    // West Niche
+    const nicheW = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 1.8), mats.brickDark);
+    nicheW.position.set(-18.7, 2.4, z);
+    group.add(nicheW);
+    const nicheSlabW = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 2.2), mats.wallCap);
+    nicheSlabW.position.set(-18.6, 1.35, z);
+    group.add(nicheSlabW);
+
+    // East Niche
+    const nicheE = new THREE.Mesh(new THREE.BoxGeometry(0.6, 2.0, 1.8), mats.brickDark);
+    nicheE.position.set(18.7, 2.4, z);
+    group.add(nicheE);
+    const nicheSlabE = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.15, 2.2), mats.wallCap);
+    nicheSlabE.position.set(18.6, 1.35, z);
+    group.add(nicheSlabE);
+  }
+
+  // 4. Monolithic Sanctuary Columns with Stepped Bases & Capitals
   const pillarPositions = [
-    { x: -10, z: -18 },
-    { x: 10, z: -18 },
-    { x: -10, z: -6 },
-    { x: 10, z: -6 },
-    { x: -10, z: 8 },
-    { x: 10, z: 8 },
-    { x: -10, z: 20 },
-    { x: 10, z: 20 },
+    { x: -11, z: -18 },
+    { x:  11, z: -18 },
+    { x: -11, z:  -6 },
+    { x:  11, z:  -6 },
+    { x: -11, z:   8 },
+    { x:  11, z:   8 },
+    { x: -11, z:  20 },
+    { x:  11, z:  20 },
   ];
 
   for (const pos of pillarPositions) {
     const pillarGroup = new THREE.Group();
 
-    // Pillar base
-    const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.7, 2.2), mats.wallCap);
-    baseMesh.position.y = 0.35;
-    baseMesh.castShadow = true;
-    baseMesh.receiveShadow = true;
-    pillarGroup.add(baseMesh);
+    // Stepped Tier 1 Base
+    const base1 = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.4, 2.6), mats.brickDark);
+    base1.position.y = 0.2;
+    base1.castShadow = true;
+    base1.receiveShadow = true;
+    pillarGroup.add(base1);
 
-    // Fluted cylindrical column
-    const colMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.9, 6.5, 16), mats.brick);
-    colMesh.position.y = 3.6;
+    // Stepped Tier 2 Base
+    const base2 = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.4, 2.2), mats.wallCap);
+    base2.position.y = 0.55;
+    base2.castShadow = true;
+    base2.receiveShadow = true;
+    pillarGroup.add(base2);
+
+    // Fluted cylindrical column shaft
+    const colMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.82, 0.92, 6.6, 18), mats.brick);
+    colMesh.position.y = 4.0;
     colMesh.castShadow = true;
     colMesh.receiveShadow = true;
     pillarGroup.add(colMesh);
 
-    // Capital
-    const capMesh = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.7, 2.4), mats.wallCap);
-    capMesh.position.y = 7.1;
-    capMesh.castShadow = true;
-    pillarGroup.add(capMesh);
+    // Stepped Corbelled Capital
+    const cap1 = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.35, 2.2), sanctumStone);
+    cap1.position.y = 7.4;
+    cap1.castShadow = true;
+    pillarGroup.add(cap1);
+
+    const cap2 = new THREE.Mesh(new THREE.BoxGeometry(2.8, 0.4, 2.8), mats.brickDark);
+    cap2.position.y = 7.75;
+    cap2.castShadow = true;
+    pillarGroup.add(cap2);
 
     pillarGroup.position.set(pos.x, 0, pos.z);
     group.add(pillarGroup);
 
-    colliders.push({ minX: pos.x - 1.1, maxX: pos.x + 1.1, minZ: pos.z - 1.1, maxZ: pos.z + 1.1 });
+    colliders.push({ minX: pos.x - 1.3, maxX: pos.x + 1.3, minZ: pos.z - 1.3, maxZ: pos.z + 1.3 });
   }
 
-  // 4. Sacred Central Stepped Altar Pyramid
+  // 5. Sacred Central Stepped Altar Pyramid
   const altarGroup = new THREE.Group();
 
-  const step1 = new THREE.Mesh(new THREE.BoxGeometry(6.5, 0.5, 6.5), mats.brickDark);
-  step1.position.set(0, 0.25, -12);
+  // Tier 1 Base
+  // Each rise stays below the physics controller's step threshold, making the
+  // altar reliably climbable instead of requiring an awkward jump at the gate.
+  const step1 = new THREE.Mesh(new THREE.BoxGeometry(7.5, 0.42, 7.5), mats.brickDark);
+  step1.position.set(0, 0.21, -12);
   step1.receiveShadow = true;
   step1.castShadow = true;
   altarGroup.add(step1);
 
-  const step2 = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.5, 4.8), mats.brick);
-  step2.position.set(0, 0.75, -12);
+  // Tier 2 Middle Step
+  const step2 = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.42, 5.6), mats.brick);
+  step2.position.set(0, 0.63, -12);
   step2.receiveShadow = true;
   step2.castShadow = true;
   altarGroup.add(step2);
 
-  const step3 = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.5, 3.2), mats.brickDark);
-  step3.position.set(0, 1.25, -12);
+  // Tier 3 Top Step with Inscribed Moulding
+  const step3 = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.42, 3.8), mats.brickDark);
+  step3.position.set(0, 1.05, -12);
   step3.receiveShadow = true;
   step3.castShadow = true;
   altarGroup.add(step3);
 
-  // Golden Altar Pedestal
-  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.0, 0.7, 16), mats.goldBrass);
-  pedestal.position.set(0, 1.85, -12);
+  // Golden Altar Pedestal with Indus Relief Trim
+  const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1.15, 0.85, 18), altarMetal);
+  pedestal.position.set(0, 1.68, -12);
   pedestal.receiveShadow = true;
   pedestal.castShadow = true;
   altarGroup.add(pedestal);
 
-  group.add(altarGroup);
-  colliders.push({ minX: -3.3, maxX: 3.3, minZ: -15.5, maxZ: -8.5 });
+  const pedestalCap = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.0, 0.15, 18), mats.wallCap);
+  pedestalCap.position.set(0, 2.15, -12);
+  pedestalCap.receiveShadow = true;
+  pedestalCap.castShadow = true;
+  altarGroup.add(pedestalCap);
 
-  // 5. PROGRESSION GATING: Sacred Inner Sanctum Barrier
-  // This barrier physically blocks walking directly into the altar until the sanctuary friezes & keystone are solved!
+  group.add(altarGroup);
+  // Stepped climbable pyramid colliders (Tier 1 -> Tier 2 -> Tier 3)
+  colliders.push({ minX: -3.75, maxX: 3.75, minZ: -15.75, maxZ: -8.25, maxY: 0.42, isWalkable: true });
+  colliders.push({ minX: -2.8, maxX: 2.8, minZ: -14.8, maxZ: -9.2, maxY: 0.84, isWalkable: true });
+  colliders.push({ minX: -1.9, maxX: 1.9, minZ: -13.9, maxZ: -10.1, maxY: 1.26, isWalkable: true });
+  colliders.push({ minX: -0.6, maxX: 0.6, minZ: -12.6, maxZ: -11.4, minY: 1.26, maxY: 2.25, isWalkable: false });
+
+  // 6. MAGICAL PORTAL (Ethereal Ancient Sanctuary Vortex behind the Altar)
+  const magicalPortal = createMagicalPortal(0, 4.4, -15.2);
+  group.add(magicalPortal.group);
+  addEntity(
+    "sanctum_portal",
+    "sanctum_portal",
+    "The Sacred Sanctum Vortex",
+    "Enter Sanctum Vortex",
+    0,
+    2.5,
+    -15.2,
+    magicalPortal.group,
+    "The ancient vortex hums with harmonic energy!",
+  );
+  const portalEnt = interactiveEntities.find((e) => e.id === "sanctum_portal");
+  if (portalEnt) {
+    portalEnt.interactionRadius = 4.8;
+  }
+
+  // 7. PROGRESSION GATING: Sacred Inner Sanctum Barrier & Monolithic Pylons
   const barrierGroup = new THREE.Group();
-  const barrierPillarL = new THREE.Mesh(new THREE.BoxGeometry(1.2, 5.0, 1.2), mats.goldBrass);
-  barrierPillarL.position.set(-4.2, 2.5, -4);
+
+  // Left Pylon
+  const barrierPillarL = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5.5, 1.4), mats.wallCap);
+  barrierPillarL.position.set(-4.5, 2.75, -4);
   barrierPillarL.castShadow = true;
   barrierGroup.add(barrierPillarL);
 
-  const barrierPillarR = new THREE.Mesh(new THREE.BoxGeometry(1.2, 5.0, 1.2), mats.goldBrass);
-  barrierPillarR.position.set(4.2, 2.5, -4);
+  const pylonCapL = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.8), altarMetal);
+  pylonCapL.position.set(-4.5, 5.6, -4);
+  barrierGroup.add(pylonCapL);
+
+  // Right Pylon
+  const barrierPillarR = new THREE.Mesh(new THREE.BoxGeometry(1.4, 5.5, 1.4), mats.wallCap);
+  barrierPillarR.position.set(4.5, 2.75, -4);
   barrierPillarR.castShadow = true;
   barrierGroup.add(barrierPillarR);
 
+  const pylonCapR = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.4, 1.8), altarMetal);
+  pylonCapR.position.set(4.5, 5.6, -4);
+  barrierGroup.add(pylonCapR);
+
   // Glowing energy/bronze lattice gate
-  const barrierGate = new THREE.Mesh(new THREE.BoxGeometry(7.2, 4.0, 0.4), mats.goldBrass);
-  barrierGate.position.set(0, 2.0, -4);
+  const barrierGateMat = altarMetal.clone();
+  barrierGateMat.emissive = new THREE.Color(0x1b0f02);
+  barrierGateMat.emissiveIntensity = 0.25;
+  const barrierGate = new THREE.Mesh(new THREE.BoxGeometry(7.6, 4.2, 0.4), barrierGateMat);
+  barrierGate.position.set(0, 2.1, -4);
   barrierGate.castShadow = true;
   barrierGroup.add(barrierGate);
 
@@ -164,49 +326,112 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
 
   // Physical barrier collider
   const barrierCollider: BoxCollider3D = {
-    minX: -4.5,
-    maxX: 4.5,
+    minX: -4.8,
+    maxX: 4.8,
     minZ: -4.8,
     maxZ: -3.2,
     name: "altar_barrier_col",
   };
   colliders.push(barrierCollider);
 
-  // 6. Interactive Sanctuary Exploration Finds (Required for unlocking the Altar Barrier)
-  // Find 1: East Sanctuary Frieze (Script Line)
-  const frieze1 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.2), mats.steatiteSeal);
-  frieze1.position.set(18.5, 2.2, 4);
+  // A recessed ceremonial arch and alternating relief blocks deepen the altar
+  // wall silhouette; these are visual-only to preserve the existing route.
+  const portalRecess = new THREE.Mesh(new THREE.TorusGeometry(3.15, 0.3, 10, 36), sanctumStone);
+  portalRecess.position.set(0, 3.4, -16.1);
+  group.add(portalRecess);
+  for (let i = 0; i < 8; i++) {
+    const angle = Math.PI * (i / 7);
+    const relief = new THREE.Mesh(
+      new THREE.BoxGeometry(i % 2 === 0 ? 0.62 : 0.42, 0.28, 0.18),
+      i % 2 === 0 ? altarMetal : sanctumStone,
+    );
+    relief.position.set(Math.cos(angle) * 3.15, 3.4 + Math.sin(angle) * 3.15, -16.25);
+    relief.rotation.z = angle - Math.PI / 2;
+    group.add(relief);
+  }
+
+  const altarSpot = new THREE.SpotLight(0xffbd66, 0.85, 19, Math.PI / 5, 0.75, 1.5);
+  altarSpot.position.set(0, 7.6, -6.5);
+  altarSpot.target.position.set(0, 1.3, -12);
+  altarSpot.castShadow = false;
+  group.add(altarSpot, altarSpot.target);
+  const portalRimLight = new THREE.PointLight(0x006d82, 0.8, 12, 2);
+  portalRimLight.position.set(0, 4.5, -15.6);
+  group.add(portalRimLight);
+
+  const barrierSparks: THREE.Mesh[] = [];
+  const sparkMat = new THREE.MeshBasicMaterial({ color: 0x7ffcff, transparent: true, opacity: 0 });
+  for (let i = 0; i < 14; i++) {
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.035 + (i % 3) * 0.012, 5, 5), sparkMat);
+    spark.position.set((i % 7 - 3) * 0.9, 1.2 + Math.floor(i / 7) * 1.5, -3.7);
+    spark.visible = false;
+    group.add(spark);
+    barrierSparks.push(spark);
+  }
+
+  // 8. Interactive Sanctuary Exploration Finds (Required for unlocking the Altar Barrier)
+  // Find 1: East Sanctuary Frieze (Script Line Inscription)
+  const frieze1Group = new THREE.Group();
+  const frieze1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.25), mats.steatiteSeal);
+  frieze1.position.y = 0.9;
+  frieze1.castShadow = true;
+  frieze1Group.add(frieze1);
+  const frieze1Frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 0.18), mats.goldBrass);
+  frieze1Frame.position.y = 0.9;
+  frieze1Group.add(frieze1Frame);
+
   addEntity(
     "tablet",
     "tablet",
     "Sanctuary Inscription Frieze",
     "Study Sanctuary Glyphs",
     17.5,
-    0,
+    0.8,
     4,
-    frieze1,
+    frieze1Group,
     "Inspect the West Wall Totem Relief to find the keystone formula.",
   );
 
-  // Find 2: West Sanctuary Frieze (Zebu Totem Relief)
-  const frieze2 = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.4, 0.2), mats.steatiteSeal);
-  frieze2.position.set(-18.5, 2.2, 4);
+  // Find 2: West Sanctuary Frieze (Zebu Totem Sacred Relief)
+  const frieze2Group = new THREE.Group();
+  const frieze2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.25), mats.steatiteSeal);
+  frieze2.position.y = 0.9;
+  frieze2.castShadow = true;
+  frieze2Group.add(frieze2);
+  const frieze2Frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 0.18), mats.goldBrass);
+  frieze2Frame.position.y = 0.9;
+  frieze2Group.add(frieze2Frame);
+
   addEntity(
     "crate",
     "crate",
     "Zebu Bull Sacred Frieze",
     "Examine Sacred Totem Relief",
     -17.5,
-    0,
+    0.8,
     4,
-    frieze2,
+    frieze2Group,
     "Approach the Sanctuary Keystone Mechanism in front of the gate!",
   );
 
   // Find 3: Sanctuary Keystone Mechanism (Triggers the unlocking of the Altar Barrier)
-  const keystone = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.8, 1.2, 16), mats.goldBrass);
-  keystone.position.set(0, 0.6, 2);
-  keystone.castShadow = true;
+  const keystoneGroup = new THREE.Group();
+  const keystonePlinth = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.3, 20), mats.brickDark);
+  keystonePlinth.position.y = 0.15;
+  keystonePlinth.castShadow = true;
+  keystonePlinth.receiveShadow = true;
+  keystoneGroup.add(keystonePlinth);
+
+  const keystoneDial = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 0.2, 20), mats.goldBrass);
+  keystoneDial.position.y = 0.4;
+  keystoneDial.castShadow = true;
+  keystoneGroup.add(keystoneDial);
+
+  const keystoneCore = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.6, 16), mats.steatiteSeal);
+  keystoneCore.position.y = 0.75;
+  keystoneCore.castShadow = true;
+  keystoneGroup.add(keystoneCore);
+
   addEntity(
     "underground_cache",
     "underground_cache",
@@ -215,29 +440,59 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     0,
     0,
     2,
-    keystone,
+    keystoneGroup,
     "The Altar Barrier is disengaged! Approach the central altar to recover the Steatite Seal.",
   );
 
-  // 7. THE HERO STEATITE STAMP SEAL (Masterpiece Artifact on Altar)
+  // 9. THE HERO STEATITE STAMP SEAL (Masterpiece Artifact Climax)
   const sealGroup = new THREE.Group();
 
-  // White vitrified steatite seal body
-  const sealBody = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.18), mats.steatiteSeal);
+  // White vitrified steatite seal body (Authentic Harappan square stamp)
+  const sealBody = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.2), mats.steatiteSeal);
   sealBody.castShadow = true;
   sealGroup.add(sealBody);
 
   // Engraved relief boss on reverse
-  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 0.2, 16), mats.steatiteSeal);
-  boss.position.set(0, 0, -0.16);
+  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.22, 16), mats.steatiteSeal);
+  boss.position.set(0, 0, -0.18);
   boss.rotation.x = Math.PI / 2;
   sealGroup.add(boss);
 
-  // Golden Sacred Halo Point Light on the Seal
-  const altarLight = new THREE.PointLight(0xf59e0b, 3.8, 14, 1.1);
-  altarLight.position.set(0, 4.0, -12);
+  // Glowing Concentric Cyan/Teal Emissive Halo Rings (picked up brilliantly by Bloom pass)
+  const haloMat1 = new THREE.MeshStandardMaterial({
+    color: 0x00ffff,
+    emissive: new THREE.Color(0x00ddff),
+    emissiveIntensity: 3.2,
+    transparent: true,
+    opacity: 0.85,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const haloRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.035, 8, 36), haloMat1);
+  sealGroup.add(haloRing1);
+
+  const haloMat2 = new THREE.MeshStandardMaterial({
+    color: 0xffd700,
+    emissive: new THREE.Color(0xffaa00),
+    emissiveIntensity: 2.8,
+    transparent: true,
+    opacity: 0.7,
+    side: THREE.DoubleSide,
+    depthWrite: false,
+  });
+  const haloRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.025, 8, 36), haloMat2);
+  haloRing2.rotation.x = Math.PI / 3;
+  sealGroup.add(haloRing2);
+
+  // Hero Spotlight & Divine Warm Point Light shining directly on the Seal
+  const altarLight = new THREE.PointLight(0xffb844, 3.6, 14, 1.2);
+  altarLight.position.set(0, 4.8, -12);
   altarLight.castShadow = true;
   group.add(altarLight);
+
+  const sealCyanLight = new THREE.PointLight(0x00e8ff, 2.5, 8, 1.4);
+  sealCyanLight.position.set(0, 3.2, -11.5);
+  group.add(sealCyanLight);
 
   addEntity(
     "steatite_seal",
@@ -245,58 +500,88 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     "The Master Steatite Stamp Seal",
     "Recover & Authenticate Steatite Seal",
     0,
-    2.4,
+    2.65,
     -12,
     sealGroup,
     "Perform forensic authentication on the recovered artifact.",
   );
 
-  // 8. Atmospheric Golden Dust Particles
-  const particleCount = 240;
-  const particleGeo = new THREE.BufferGeometry();
-  const particlePositions = new Float32Array(particleCount * 3);
+  // 10. Archaeological Props & Ancient Debris
+  group.add(createPotteryCluster(mats));
+  const potCluster2 = createPotteryCluster(mats);
+  potCluster2.position.set(-16.5, 0, -18);
+  group.add(potCluster2);
 
-  for (let i = 0; i < particleCount * 3; i += 3) {
-    particlePositions[i] = (Math.random() - 0.5) * 35;
-    particlePositions[i + 1] = Math.random() * 6.0;
-    particlePositions[i + 2] = (Math.random() - 0.5) * 55;
-  }
+  const potCluster3 = createPotteryCluster(mats);
+  potCluster3.position.set(16.5, 0, -18);
+  group.add(potCluster3);
 
-  particleGeo.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
-  const particleMat = new THREE.PointsMaterial({
-    color: 0xfbbf24,
-    size: 0.12,
-    transparent: true,
-    opacity: 0.75,
-  });
-  const dustParticles = new THREE.Points(particleGeo, particleMat);
-  group.add(dustParticles);
+  // Fallen carved masonry rubble & stylized rocks around perimeter
+  group.add(createStylizedRock(mats, 1.1, colliders, -15.5, 14));
+  group.add(createStylizedRock(mats, 0.9, colliders,  15.5, 14));
+  group.add(createStylizedRock(mats, 0.8, colliders, -16.5, -24));
+  group.add(createStylizedRock(mats, 1.0, colliders,  16.5, -24));
 
-  // 9. Sconce Torches with Dynamic Point Lights (Warm, Bright & Visible!)
-  const torchLights: THREE.PointLight[] = [];
-  const tPositions = [
-    { x: -18, y: 3.4, z: -20 },
-    { x: 18, y: 3.4, z: -20 },
-    { x: -18, y: 3.4, z: -6 },
-    { x: 18, y: 3.4, z: -6 },
-    { x: -18, y: 3.4, z: 8 },
-    { x: 18, y: 3.4, z: 8 },
-    { x: -18, y: 3.4, z: 22 },
-    { x: 18, y: 3.4, z: 22 },
+  // ── SCONCE TORCHES ──────────────────────────────────────────────────────────
+  const torches: TorchInstance[] = [];
+  const torchPositions: [number, number, number, number, number][] = [
+    // [x, y, z, wallDir, flickerOffset]
+    // West wall sconces
+    [-18.5, 2.4, -20,  Math.PI / 2,   0.0],
+    [-18.5, 2.4,  -6,  Math.PI / 2,   0.9],
+    [-18.5, 2.4,   8,  Math.PI / 2,   1.8],
+    [-18.5, 2.4,  22,  Math.PI / 2,   2.7],
+    // East wall sconces
+    [ 18.5, 2.4, -20, -Math.PI / 2,   0.45],
+    [ 18.5, 2.4,  -6, -Math.PI / 2,   1.35],
+    [ 18.5, 2.4,   8, -Math.PI / 2,   2.25],
+    [ 18.5, 2.4,  22, -Math.PI / 2,   0.15],
+    // Altar corner braziers
+    [-4.0,  1.6, -16, -Math.PI / 4,   0.7],
+    [ 4.0,  1.6, -16,  Math.PI / 4,   1.6],
+    [-4.0,  1.6,  -8, -Math.PI * 0.75, 2.3],
+    [ 4.0,  1.6,  -8,  Math.PI * 0.75, 0.3],
+    // Entrance framing torches
+    [-3.5,  2.2,  30.5, Math.PI,      1.1],
+    [ 3.5,  2.2,  30.5, Math.PI,      2.0],
   ];
 
-  for (const tp of tPositions) {
-    const torch = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.7, 8), mats.torchWood);
-    torch.position.set(tp.x, tp.y, tp.z);
-    torch.rotation.z = tp.x < 0 ? -Math.PI / 6 : Math.PI / 6;
-    group.add(torch);
-
-    const light = new THREE.PointLight(0xf59e0b, 2.6, 12, 1.2);
-    light.position.set(tp.x, tp.y + 0.35, tp.z);
-    light.castShadow = true;
-    group.add(light);
-    torchLights.push(light);
+  for (const [x, y, z, dir, offset] of torchPositions) {
+    const torch = createTorch(x, y, z, dir, offset);
+    group.add(torch.group);
+    torches.push(torch);
   }
+
+  // ── FLOATING DUST PARTICLES ────────────────────────────────────────────────
+  const dust = createFloatingDust(260, 34);
+  group.add(dust.points);
+
+  // ── RUNE GLOWS on interactive discovery objects ───────────────────────────
+  const runeGlows: RuneGlow[] = [];
+
+  // East Inscription Frieze rune
+  const runeEast = createRuneGlow(17.5, 1.7, 4, 0, 0x00cccc);
+  group.add(runeEast.group);
+  runeGlows.push(runeEast);
+
+  // West Totem Frieze rune
+  const runeWest = createRuneGlow(-17.5, 1.7, 4, 0, 0x00cccc);
+  group.add(runeWest.group);
+  runeGlows.push(runeWest);
+
+  // Keystone Mechanism rune
+  const runeKeystone = createRuneGlow(0, 0.95, 2, 0, 0x00e8ff);
+  group.add(runeKeystone.group);
+  runeGlows.push(runeKeystone);
+
+  // Altar Dais Divine rune
+  const runeAltar = createRuneGlow(0, 2.65, -12, 0, 0xffbb22);
+  group.add(runeAltar.group);
+  runeGlows.push(runeAltar);
+
+  // ── ACTIVATION PULSE ───────────────────────────────────────────────────────
+  const activationPulse: ActivationPulse = createActivationPulse(0x00ffff);
+  group.add(activationPulse.mesh);
 
   let isBarrierLowered = false;
   let barrierProgress = 0;
@@ -307,45 +592,100 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     interactiveEntities,
     spawnPoint: new THREE.Vector3(0, 0, 24),
     spawnRotation: Math.PI,
-    sunColor: 0xa87548, // Warm bounce fill
-    sunIntensity: 1.4,
-    ambientColor: 0x6e4e36, // Rich ambient fill ensuring 100% readability!
-    fogColor: 0x241910,
-    fogDensity: 0.015,
+    sunColor: 0xdf9856, // Warm directional key bounce
+    sunIntensity: 1.8,
+    ambientColor: 0x3e281c, // Subterranean moody ambient contrast
+    fogColor: 0x1c1008,
+    fogDensity: 0.013,
     animatedProps: {
       update: (dt, time) => {
-        // Rotate and float the hero Steatite Seal
-        sealGroup.rotation.y = time * 0.95;
-        sealGroup.position.y = 2.4 + Math.sin(time * 2.4) * 0.14;
+        // Dynamic barrier lowering when keystone puzzle removes collider
+        const isBarrierLowered = !colliders.some((c) => c.name === "altar_barrier_col");
+        const barrierCharge = isBarrierLowered ? Math.min(1, barrierProgress * 1.7 + 0.25) : 0;
+        const sealRevealed = sealGroup.visible;
 
-        // Water ripple oscillation
-        leftPool.position.y = 0.04 + Math.sin(time * 2.0) * 0.015;
-        rightPool.position.y = 0.04 + Math.sin(time * 2.0 + 1) * 0.015;
+        // Rotate and float the hero Steatite Seal (intensifies when barrier opens)
+        const sealSpinSpeed = isBarrierLowered ? 1.45 : 0.95;
+        sealGroup.rotation.y = time * sealSpinSpeed;
+        sealGroup.position.y = (isBarrierLowered ? 2.9 : 2.65) + Math.sin(time * 2.4) * 0.16;
 
-        // Torchlight flicker
-        torchLights.forEach((tl, idx) => {
-          tl.intensity = 2.6 + Math.sin(time * 9.0 + idx * 2) * 0.4;
-        });
+        // Counter-rotating halo rings with climax flare
+        const haloSpeed = isBarrierLowered ? 2.2 : 1.2;
+        haloRing1.rotation.z =  time * haloSpeed;
+        haloRing2.rotation.z = -time * (haloSpeed * 0.8);
+        haloRing2.rotation.y =  Math.sin(time * 1.5) * 0.4;
+
+        if (isBarrierLowered) {
+          altarLight.intensity = THREE.MathUtils.lerp(altarLight.intensity, 5.2, 0.05);
+          sealCyanLight.intensity = THREE.MathUtils.lerp(sealCyanLight.intensity, 3.8, 0.05);
+          haloMat1.emissiveIntensity = 4.2;
+          haloMat2.emissiveIntensity = 3.6;
+          altarSpot.intensity = THREE.MathUtils.lerp(altarSpot.intensity, sealRevealed ? 3.2 : 1.9, 0.035);
+          portalRimLight.intensity = THREE.MathUtils.lerp(portalRimLight.intensity, sealRevealed ? 3.4 : 1.8, 0.04);
+          altarMetal.emissiveIntensity = THREE.MathUtils.lerp(
+            altarMetal.emissiveIntensity,
+            sealRevealed ? 1.25 : 0.55,
+            0.04,
+          );
+        }
+
+        // A subtle route shimmer guides the eye while the final state pushes
+        // light toward the altar and vortex rather than the whole room.
+        for (let i = 0; i < routeInlays.length; i++) {
+          const inlay = routeInlays[i]!;
+          const wave = Math.max(0, Math.sin(time * 1.35 - i * 0.78));
+          inlay.scale.setScalar(1 + wave * 0.08);
+        }
+        routeInlayMat.emissiveIntensity = isBarrierLowered ? 0.35 + Math.sin(time * 2.1) * 0.12 : 0.04;
+
+        // Magical Portal backdrop gains intensity after Keystone activation and
+        // a warm final highlight once the seal has materialized.
+        magicalPortal.update(time, barrierCharge, sealRevealed ? 1 : 0);
+
+        // Water caustic ripple oscillation
+        leftPool.position.y = 0.07 + Math.sin(time * 2.0) * 0.015;
+        rightPool.position.y = 0.07 + Math.sin(time * 2.0 + 1) * 0.015;
+
+        // Torches dynamic multi-sine flicker
+        for (const torch of torches) torch.update(time);
+
+        // Subterranean dust drift
+        dust.update(dt, time);
+
+        // Rune glows animation
+        for (const rune of runeGlows) rune.update(time);
+
+        // Activation pulse expand
+        activationPulse.update(dt);
 
         // Barrier lowering animation when solved
         if (isBarrierLowered && barrierProgress < 1) {
           barrierProgress = Math.min(1, barrierProgress + dt * 1.5);
-          barrierGate.position.y = 2.0 - barrierProgress * 4.5;
-        }
-
-        // Dust motes drifting
-        const posAttr = particleGeo.getAttribute("position") as THREE.BufferAttribute | undefined;
-        if (posAttr) {
-          const array = posAttr.array as Float32Array;
-          for (let i = 0; i < particleCount * 3; i += 3) {
-            const curY = array[i + 1] ?? 0;
-            const curX = array[i] ?? 0;
-            array[i + 1] = curY + Math.sin(time + curX) * 0.0035;
-            if ((array[i + 1] ?? 0) > 6.0) array[i + 1] = 0.2;
+          barrierGate.position.y = 2.1 - barrierProgress * 4.8;
+          barrierGateMat.emissiveIntensity = 0.35 + (1 - barrierProgress) * 2.8;
+          for (let i = 0; i < barrierSparks.length; i++) {
+            const spark = barrierSparks[i]!;
+            spark.visible = true;
+            const phase = time * 4.6 + i * 1.73;
+            spark.position.x = (i % 7 - 3) * 0.92 + Math.sin(phase) * 0.14;
+            spark.position.y = 0.4 + ((phase * 0.55) % 3.7);
+            spark.scale.setScalar(0.6 + Math.sin(phase * 2) * 0.25);
           }
-          posAttr.needsUpdate = true;
+          sparkMat.opacity = Math.max(0, 0.92 - barrierProgress * 0.9);
+        } else if (isBarrierLowered) {
+          barrierGate.visible = false;
+          for (const spark of barrierSparks) spark.visible = false;
         }
       },
+    },
+    triggerPulse: (x: number, y: number, z: number) => {
+      activationPulse.trigger(x, y, z);
+    },
+    onEntityInspected: (id: string) => {
+      const ent = interactiveEntities.find(e => e.id === id);
+      if (ent) {
+        activationPulse.trigger(ent.position.x, ent.position.y + 0.5, ent.position.z);
+      }
     },
   };
 }

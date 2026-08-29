@@ -20,6 +20,9 @@ export type EntityType3D =
   | "crate"
   | "seal_impression"
   | "passage_gate"
+  | "sanctum_portal"
+  | "water_puzzle"
+  | "merchant_puzzle"
   | "storage_jars"
   | "textile_bales"
   | "merchant_tablet"
@@ -46,6 +49,10 @@ export interface BoxCollider3D {
   maxX: number;
   minZ: number;
   maxZ: number;
+  minY?: number;
+  maxY?: number;
+  isWalkable?: boolean;
+  isStep?: boolean;
   name?: string;
 }
 
@@ -59,4 +66,26 @@ export interface PlayerPhysicsState {
   isJumping: boolean;
   jumpTimer: number;
   animState: "idle" | "walk" | "run" | "jump" | "fall";
+}
+
+export type StoryActId =
+  | "act-1-discovery"
+  | "act-2-lost-city"
+  | "act-3-merchant-quarter"
+  | "act-4-sealed-sanctum";
+
+export interface StoryActInfo {
+  id: StoryActId;
+  actNumber: string;
+  title: string;
+  subtitle: string;
+  historicalContext: string;
+}
+
+export interface GameStoryProgress {
+  introCompleted: boolean;
+  currentAct: StoryActId;
+  discoveredArtifacts: string[];
+  completedObjectives: string[];
+  levelProgress: LevelId;
 }

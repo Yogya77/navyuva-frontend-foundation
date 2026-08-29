@@ -19,15 +19,81 @@ import { ObjectInspectionModal } from "../modals/ObjectInspectionModal";
 import { SymbolPuzzleModal } from "../modals/SymbolPuzzleModal";
 import { FloorCacheModal } from "../modals/FloorCacheModal";
 import { SealForensicModal } from "../modals/SealForensicModal";
+import { WaterFlowPuzzleModal } from "../modals/WaterFlowPuzzleModal";
+import { MerchantAccountingModal } from "../modals/MerchantAccountingModal";
 import { CluePanel } from "../CluePanel";
 import { LostSealCompletion } from "../LostSealCompletion";
-import type { LevelId, InteractiveEntity3D } from "./types";
-import type { ArchaeologicalClue } from "../types";
+import type { LevelId, InteractiveEntity3D, StoryActId, StoryActInfo } from "./types";
+import type {
+  ArchaeologicalClue,
+  JournalArtifact,
+  JournalDocument,
+  ExpeditionObjective,
+} from "../types";
 
 interface LostSeal3DAdventureProps {
   onComplete: (score: number, maxScore: number) => void;
   onExit: () => void;
 }
+
+export const STORY_ACTS: Record<StoryActId, StoryActInfo> = {
+  "act-1-discovery": {
+    id: "act-1-discovery",
+    actNumber: "ACT I",
+    title: "THE DISCOVERY",
+    subtitle: "Archaeological Excavation Trench DK-G",
+    historicalContext: "Initial stratigraphic survey reveals Mature Harappan habitation layers (2600–1900 BCE).",
+  },
+  "act-2-lost-city": {
+    id: "act-2-lost-city",
+    actNumber: "ACT II",
+    title: "THE LOST CITY",
+    subtitle: "Civic Citadel & Great Bath",
+    historicalContext: "Investigate ancient civic drainage, brick masonry, and the northern gateway.",
+  },
+  "act-3-merchant-quarter": {
+    id: "act-3-merchant-quarter",
+    actNumber: "ACT III",
+    title: "THE MERCHANT QUARTER",
+    subtitle: "Bazaar, Warehouses & Guild Records",
+    historicalContext: "Decipher standardized chert weights, storage bullae tags, and carved Indus symbol locks.",
+  },
+  "act-4-sealed-sanctum": {
+    id: "act-4-sealed-sanctum",
+    actNumber: "ACT IV",
+    title: "THE SEALED SANCTUM",
+    subtitle: "Subterranean Vault & Master Steatite Seal",
+    historicalContext: "Align the sacred keystone mechanism to recover and authenticate the Master Steatite Stamp Seal.",
+  },
+};
+
+export const INTRO_SHOT_TEXTS = [
+  {
+    title: "NAVYUVA HERITAGE EXPEDITION",
+    subtitle: "ARCHAEOLOGICAL RESEARCH INITIATIVE",
+    tagline: "Expedition DK-G • Mohenjo-daro",
+  },
+  {
+    title: "MOHENJO-DARO",
+    subtitle: "2600–1900 BCE • INDUS VALLEY CIVILIZATION",
+    tagline: "A master planned metropolis hidden beneath the silt for four millennia.",
+  },
+  {
+    title: "THE LOST CITY",
+    subtitle: "CEREMONIAL BOULEVARD & SACRED BATH",
+    tagline: "Ancient records suggest a supreme administrative seal was deliberately concealed.",
+  },
+  {
+    title: "ANCIENT MYSTERIES",
+    subtitle: "INSCRIPTIONS • GLYPHS • TRADE MECHANISMS",
+    tagline: "Follow archaeological strata leading deep into the citadel ruins.",
+  },
+  {
+    title: "SOME STORIES ARE BURIED FOR A REASON.",
+    subtitle: "BEGIN EXPEDITION",
+    tagline: "Recover the Master Steatite Stamp Seal.",
+  },
+];
 
 const LEVEL_DETAILS: Record<LevelId, { name: string; subtitle: string; objective: string }> = {
   "level-1-lost-city": {
@@ -49,17 +115,119 @@ const LEVEL_DETAILS: Record<LevelId, { name: string; subtitle: string; objective
   },
 };
 
+const INITIAL_OBJECTIVES: ExpeditionObjective[] = [
+  {
+    id: "obj-1-journal",
+    actId: "act-1-discovery",
+    title: "Examine Field Journal at Camp",
+    description: "Inspect the leather-bound field notes at the DK-G sorting station to review missing artifact records.",
+    completed: false,
+    order: 1,
+  },
+  {
+    id: "obj-2-strata",
+    actId: "act-1-discovery",
+    title: "Survey Excavation Trench DK-G",
+    description: "Verify undisturbed Mature Harappan stratigraphy in the western excavation trench.",
+    completed: false,
+    order: 2,
+  },
+  {
+    id: "obj-3-bath-sluice",
+    actId: "act-2-lost-city",
+    title: "Operate Great Bath Sluice System",
+    description: "Engage the ancient desilting, intake, and drainage valves in correct sequence to reveal submerged votive finds.",
+    completed: false,
+    order: 3,
+  },
+  {
+    id: "obj-4-merchant-ledger",
+    actId: "act-2-lost-city",
+    title: "Decipher Scribe Station Ledger",
+    description: "Match merchant house records with binary chert metrology to identify who requisitioned the Lost Seal.",
+    completed: false,
+    order: 4,
+  },
+  {
+    id: "obj-5-north-gate",
+    actId: "act-2-lost-city",
+    title: "Enter the Merchant Quarter",
+    description: "Inspect the North Gate clay bulla tag and pass through the monumental archway into Chapter 2.",
+    completed: false,
+    order: 5,
+  },
+  {
+    id: "obj-6-weights",
+    actId: "act-3-merchant-quarter",
+    title: "Examine Binary Chert Weights",
+    description: "Verify standard guild metrology at the merchant bazaar balance table.",
+    completed: false,
+    order: 6,
+  },
+  {
+    id: "obj-7-warehouse",
+    actId: "act-3-merchant-quarter",
+    title: "Search Warehouse 7 & Account Tablets",
+    description: "Trace the trade bullae in the merchant corridors to locate the hidden entrance.",
+    completed: false,
+    order: 7,
+  },
+  {
+    id: "obj-8-symbol-gate",
+    actId: "act-3-merchant-quarter",
+    title: "Decode Carved Indus Symbol Gate",
+    description: "Align the 4-sign epigraphic sequence (Manger ➔ Bull ➔ Fish ➔ Bow) to unlock the Sealed Sanctum.",
+    completed: false,
+    order: 8,
+  },
+  {
+    id: "obj-9-sanctuary-friezes",
+    actId: "act-4-sealed-sanctum",
+    title: "Study Sacred Sanctuary Friezes",
+    description: "Examine the Zebu Bull sacred totem reliefs to obtain the keystone formula.",
+    completed: false,
+    order: 9,
+  },
+  {
+    id: "obj-10-keystone",
+    actId: "act-4-sealed-sanctum",
+    title: "Align Sanctuary Keystone Mechanism",
+    description: "Disengage the ancient bronze altar barrier guarding the inner sanctum.",
+    completed: false,
+    order: 10,
+  },
+  {
+    id: "obj-11-forensic",
+    actId: "act-4-sealed-sanctum",
+    title: "Authenticate & Recover Master Steatite Seal",
+    description: "Perform 4-part forensic verification (intaglio relief, script header, suspension boss, vitrified glaze).",
+    completed: false,
+    order: 11,
+  },
+];
+
 export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<ThreeAdventureEngine | null>(null);
 
   const [hasStarted, setHasStarted] = useState(false);
   const [currentLevelId, setCurrentLevelId] = useState<LevelId>("level-1-lost-city");
+  const [currentAct, setCurrentAct] = useState<StoryActId>("act-1-discovery");
+  const [isIntroActive, setIsIntroActive] = useState(false);
+  const [introShotIndex, setIntroShotIndex] = useState(0);
+  const [showActBanner, setShowActBanner] = useState(false);
+
   const [currentObjective, setCurrentObjective] = useState<string>(
     LEVEL_DETAILS["level-1-lost-city"].objective,
   );
+
   const [score, setScore] = useState<number>(0);
   const [clues, setClues] = useState<ArchaeologicalClue[]>([]);
+  const [objectives, setObjectives] = useState<ExpeditionObjective[]>(INITIAL_OBJECTIVES);
+  const [artifacts, setArtifacts] = useState<JournalArtifact[]>([]);
+  const [documents, setDocuments] = useState<JournalDocument[]>([]);
+
+  const [discoveryToast, setDiscoveryToast] = useState<{ title: string; icon: string } | null>(null);
   const [isMuted, setIsMuted] = useState(adventureAudio.getMuted());
   const [nearbyEntity, setNearbyEntity] = useState<InteractiveEntity3D | null>(null);
   const [qualityTier, setQualityTier] = useState<QualityTier>("ultra"); // Default Ultra for RTX 5050 class desktop
@@ -70,19 +238,31 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
 
   // Modals state
   const [inspectingEntity, setInspectingEntity] = useState<InteractiveEntity3D | null>(null);
+  const [isWaterPuzzleOpen, setIsWaterPuzzleOpen] = useState(false);
+  const [isMerchantPuzzleOpen, setIsMerchantPuzzleOpen] = useState(false);
   const [isSymbolPuzzleOpen, setIsSymbolPuzzleOpen] = useState(false);
   const [isFloorCacheOpen, setIsFloorCacheOpen] = useState(false);
   const [isSealForensicOpen, setIsSealForensicOpen] = useState(false);
   const [isCluePanelOpen, setIsCluePanelOpen] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
+  const [sanctumEvidence, setSanctumEvidence] = useState({ glyphs: false, totem: false });
+  const [isFinaleActive, setIsFinaleActive] = useState(false);
+  const [finaleShotIndex, setFinaleShotIndex] = useState(0);
+  const [isSealRevealed, setIsSealRevealed] = useState(false);
 
-  const maxScore = 650;
+  const maxScore = 800;
   const isAnyModalOpen =
     Boolean(inspectingEntity) ||
+    isWaterPuzzleOpen ||
+    isMerchantPuzzleOpen ||
     isSymbolPuzzleOpen ||
     isFloorCacheOpen ||
     isSealForensicOpen ||
     isCluePanelOpen;
+  const sanctumEvidenceComplete = sanctumEvidence.glyphs && sanctumEvidence.totem;
+  const altarBarrierUnlocked = objectives.some(
+    (objective) => objective.id === "obj-10-keystone" && objective.completed,
+  );
 
   // Detect Touch screen
   useEffect(() => {
@@ -91,10 +271,25 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     }
   }, []);
 
+  const completeObjective = useCallback((objId: string) => {
+    setObjectives((prev) =>
+      prev.map((o) => (o.id === objId ? { ...o, completed: true } : o)),
+    );
+  }, []);
+
+  // Stable callback refs to completely isolate ThreeAdventureEngine from React state rerenders
+  const callbacksRef = useRef({
+    onNearbyEntityChange: (entity: InteractiveEntity3D | null) => {},
+    onInteract: (entity: InteractiveEntity3D) => {},
+    onLevelChanged: (levelId: LevelId) => {},
+  });
+
   const handleClueFound = useCallback((newClue: ArchaeologicalClue) => {
     setClues((prev) => {
       if (prev.some((c) => c.id === newClue.id)) return prev;
       adventureAudio.playDiscovery();
+      setDiscoveryToast({ title: newClue.title, icon: newClue.icon });
+      setTimeout(() => setDiscoveryToast(null), 3800);
       return [...prev, newClue];
     });
     setScore((prev) => prev + 50);
@@ -102,16 +297,52 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
 
   const handleInteract = useCallback(
     (entity: InteractiveEntity3D) => {
-      if (entity.type === "passage_gate") {
+      if (entity.type === "sanctum_portal") {
+        if (!altarBarrierUnlocked) {
+          setDiscoveryToast({ title: "The altar barrier still blocks the vortex.", icon: "🔒" });
+          setTimeout(() => setDiscoveryToast(null), 3000);
+          return;
+        }
+        if (isFinaleActive || isSealRevealed) return;
+
+        setIsFinaleActive(true);
+        setFinaleShotIndex(0);
+        setCurrentObjective("The sanctum vortex is responding… follow the seal's reveal.");
+        engineRef.current?.startFinaleCinematic(
+          (shotIndex) => setFinaleShotIndex(shotIndex),
+          () => {
+            setIsFinaleActive(false);
+            setIsSealRevealed(true);
+            engineRef.current?.setEntityEnabled("steatite_seal", true);
+            engineRef.current?.triggerActivationPulse(0, 2.8, -12);
+            setCurrentObjective("The Master Steatite Seal has materialized on the altar. Examine it.");
+            setDiscoveryToast({ title: "The Master Seal has been revealed", icon: "✨" });
+            setTimeout(() => setDiscoveryToast(null), 4200);
+          },
+        );
+      } else if (entity.type === "passage_gate") {
         // Transition Level 1 to Level 2
+        completeObjective("obj-5-north-gate");
         engineRef.current?.loadLevel("level-2-merchant-quarter");
         setCurrentLevelId("level-2-merchant-quarter");
+        setCurrentAct("act-3-merchant-quarter");
         setCurrentObjective(LEVEL_DETAILS["level-2-merchant-quarter"].objective);
+        setShowActBanner(true);
         adventureAudio.playDiscovery();
+        setTimeout(() => setShowActBanner(false), 4500);
+      } else if (entity.type === "water_puzzle") {
+        setIsWaterPuzzleOpen(true);
+      } else if (entity.type === "merchant_puzzle") {
+        setIsMerchantPuzzleOpen(true);
       } else if (entity.type === "symbol_puzzle_gate") {
         setIsSymbolPuzzleOpen(true);
       } else if (entity.type === "underground_cache") {
-        // Altar Keystone alignment
+        // The Keystone cannot be solved before both sanctuary readings are logged.
+        if (!sanctumEvidenceComplete) {
+          setDiscoveryToast({ title: "Study both sanctuary friezes before aligning the Keystone.", icon: "📜" });
+          setTimeout(() => setDiscoveryToast(null), 3200);
+          return;
+        }
         setIsFloorCacheOpen(true);
       } else if (entity.type === "steatite_seal") {
         setIsSealForensicOpen(true);
@@ -123,8 +354,65 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           setCurrentObjective(entity.objectiveAfterInspect);
         }
 
-        // Grant historical clues
-        if (entity.type === "mound" || entity.id === "survey_marker") {
+        // Advance to Act II on discovering the first clue in Level 1
+        if (currentAct === "act-1-discovery") {
+          setCurrentAct("act-2-lost-city");
+        }
+
+        // Grant historical clues, artifacts, and documents
+        if (currentLevelId === "level-3-sealed-sanctum" && entity.id === "tablet") {
+          completeObjective("obj-9-sanctuary-friezes");
+          setSanctumEvidence((prev) => ({ ...prev, glyphs: true }));
+          handleClueFound({
+            id: "clue-sanctum-glyphs",
+            title: "Sanctuary Glyph Formula",
+            category: "Iconography",
+            icon: "🔣",
+            shortSnippet: "The inscribed sequence identifies the Zebu as the altar's authority mark.",
+            fullNote: "The east sanctuary inscription confirms the keystone responds only after the paired Zebu authority relief is studied.",
+            discoveredInStage: 3,
+          });
+        } else if (currentLevelId === "level-3-sealed-sanctum" && entity.id === "crate") {
+          completeObjective("obj-9-sanctuary-friezes");
+          setSanctumEvidence((prev) => ({ ...prev, totem: true }));
+          handleClueFound({
+            id: "clue-zebu-totem",
+            title: "Zebu Authority Totem",
+            category: "Iconography",
+            icon: "🐂",
+            shortSnippet: "The paired relief completes the keystone activation formula.",
+            fullNote: "The west wall's Zebu relief supplies the authority mark needed to release the altar's bronze lattice.",
+            discoveredInStage: 3,
+          });
+        } else if (entity.id === "camp_logbook" || entity.type === "marker") {
+          completeObjective("obj-1-journal");
+          setDocuments((prev) => {
+            if (prev.some((d) => d.id === "doc-field-journal")) return prev;
+            return [
+              ...prev,
+              {
+                id: "doc-field-journal",
+                title: "DK-G Archaeological Field Journal",
+                docType: "Field Log",
+                icon: "📖",
+                excerpt: "Trench DK-G Stratum IV: Steatite Seal #DK-770 absent from votive altar niche. Evidence of deliberate subterranean concealment prior to city abandonment.",
+                transcription: "Field notes by lead excavator establishing Mature Harappan occupation layers (2600–1900 BCE).",
+                historicalContext: "Archaeological excavations at Mohenjo-daro uncovered evidence that elite administrative seals were carefully curated and hidden during periods of environmental crisis.",
+                discoveredInStage: 1,
+              },
+            ];
+          });
+          handleClueFound({
+            id: "clue-missing-seal",
+            title: "Missing Seal Incident (Trench DK-G)",
+            category: "Stratigraphy",
+            icon: "📖",
+            shortSnippet: "Field notes confirm the master seal was deliberately hidden in an undisturbed subterranean cache.",
+            fullNote: "Trench DK-G stratigraphy proves the merchant cache was sealed under intact floor flagstones prior to abandonment.",
+            discoveredInStage: 1,
+          });
+        } else if (entity.id === "trench_strata" || entity.type === "mound") {
+          completeObjective("obj-2-strata");
           handleClueFound({
             id: "clue-strata",
             title: "Stratigraphic Context: Mature Harappan",
@@ -146,7 +434,51 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
               "Harappan storage jars were plugged and sealed with square steatite stamp impressions.",
             discoveredInStage: 1,
           });
+        } else if (entity.id === "seal_impression" || entity.type === "seal_impression") {
+          completeObjective("obj-5-north-gate");
+          setDocuments((prev) => {
+            if (prev.some((d) => d.id === "doc-magistrate-bulla")) return prev;
+            return [
+              ...prev,
+              {
+                id: "doc-magistrate-bulla",
+                title: "Gate Clearance Magistrate Bulla",
+                docType: "Bulla Tag",
+                icon: "🏷️",
+                excerpt: "North Gate Clearance: Consignment verified by Chief Magistrate. Free transit into Merchant Warehouse Quarter permitted.",
+                transcription: "Clay sealing tag with reverse rope fiber imprint.",
+                historicalContext: "Bullae tags were wrapped around parcel cords and stamped while wet to guarantee authenticity across trade networks.",
+                discoveredInStage: 1,
+              },
+            ];
+          });
+          handleClueFound({
+            id: "clue-bulla-clearance",
+            title: "North Gate Clearance Bulla",
+            category: "Trade",
+            icon: "🏷️",
+            shortSnippet: "Clay bulla confirms transit clearance into the Merchant Quarter.",
+            fullNote: "The clay tag verifies that merchant consignments carrying the chief magistrate's seal were granted clearance into the northern warehouse quarter.",
+            discoveredInStage: 1,
+          });
         } else if (entity.type === "tablet") {
+          completeObjective("obj-7-warehouse");
+          setDocuments((prev) => {
+            if (prev.some((d) => d.id === "doc-merchant-tablet")) return prev;
+            return [
+              ...prev,
+              {
+                id: "doc-merchant-tablet",
+                title: "Merchant Guild Inscribed Account Tablet",
+                docType: "Epigraphic Inscription",
+                icon: "📜",
+                excerpt: "Maritime Guild Tally: Lapis lazuli beads, carnelian ornaments, copper ingots — Stamped under Zebu emblem authority.",
+                transcription: "Indus pictographic signs with numerical tally marks.",
+                historicalContext: "Indus merchants maintained detailed administrative tablets recording maritime trade between Mohenjo-daro, Lothal, and Dilmun.",
+                discoveredInStage: 2,
+              },
+            ];
+          });
           handleClueFound({
             id: "clue-script",
             title: "Indus Script Directionality",
@@ -155,9 +487,27 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             shortSnippet: "Indus script reads Right-to-Left starting with sacred emblems.",
             fullNote:
               "Seal inscriptions read right-to-left, beginning with animal totems and ending with terminal signs.",
-            discoveredInStage: 1,
+            discoveredInStage: 2,
           });
         } else if (entity.type === "crate") {
+          completeObjective("obj-6-weights");
+          setArtifacts((prev) => {
+            if (prev.some((a) => a.id === "art-chert-weights")) return prev;
+            return [
+              ...prev,
+              {
+                id: "art-chert-weights",
+                name: "Standardized Binary Chert Cubes",
+                category: "Tool",
+                icon: "⚖️",
+                period: "Mature Harappan (2600–1900 BCE)",
+                provenance: "Merchant Bazaar Metrology Counter",
+                description: "Four finely polished cubical chert weights exhibiting standardized binary progression (1:2:4:8).",
+                historicalSignificance: "Indus civilization maintained precise metrological uniformity across 1,500 kilometers of trade routes.",
+                discoveredInStage: 2,
+              },
+            ];
+          });
           handleClueFound({
             id: "clue-weights",
             title: "Standardized Binary Chert Weights",
@@ -172,33 +522,55 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
         }
       }
     },
-    [handleClueFound],
+    [handleClueFound, currentAct, currentLevelId, completeObjective, altarBarrierUnlocked, isFinaleActive, isSealRevealed, sanctumEvidenceComplete],
   );
 
-  // Initialize 3D Engine
+  // Keep mutable callback ref up to date on every render
+  callbacksRef.current = {
+    onNearbyEntityChange: (ent) => setNearbyEntity(ent),
+    onInteract: (ent) => handleInteract(ent),
+    onLevelChanged: (lvl) => {
+      setCurrentLevelId(lvl);
+      setCurrentObjective(LEVEL_DETAILS[lvl].objective);
+    },
+  };
+
+  // Initialize 3D Engine & Trigger Cinematic Intro (Runs EXACTLY ONCE on start)
   useEffect(() => {
     if (!hasStarted || !canvasRef.current) return;
 
     const engine = new ThreeAdventureEngine(
       canvasRef.current,
       {
-        onNearbyEntityChange: (ent) => setNearbyEntity(ent),
-        onInteract: (ent) => handleInteract(ent),
-        onLevelChanged: (lvl) => {
-          setCurrentLevelId(lvl);
-          setCurrentObjective(LEVEL_DETAILS[lvl].objective);
-        },
+        onNearbyEntityChange: (ent) => callbacksRef.current.onNearbyEntityChange(ent),
+        onInteract: (ent) => callbacksRef.current.onInteract(ent),
+        onLevelChanged: (lvl) => callbacksRef.current.onLevelChanged(lvl),
       },
       qualityTier,
     );
 
     engineRef.current = engine;
 
+    // Start Cinematic Intro Camera Flow
+    setIsIntroActive(true);
+    setIntroShotIndex(0);
+    engine.startCinematicIntro(
+      (shotIdx) => {
+        setIntroShotIndex(shotIdx);
+      },
+      () => {
+        setIsIntroActive(false);
+        setShowActBanner(true);
+        adventureAudio.playStoryReveal();
+        setTimeout(() => setShowActBanner(false), 4500);
+      },
+    );
+
     return () => {
       engine.destroy();
       engineRef.current = null;
     };
-  }, [hasStarted, handleInteract, qualityTier]);
+  }, [hasStarted]); // ONLY depends on hasStarted!
 
   // Pause engine when modal is open
   useEffect(() => {
@@ -215,9 +587,87 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     engineRef.current?.setQuality(q);
   };
 
+  // Solving Great Bath Water Flow Puzzle
+  const handleWaterPuzzleSolved = (scoreEarned: number) => {
+    setIsWaterPuzzleOpen(false);
+    setScore((prev) => prev + scoreEarned);
+    completeObjective("obj-3-bath-sluice");
+    setArtifacts((prev) => {
+      if (prev.some((a) => a.id === "art-steatite-key")) return prev;
+      return [
+        ...prev,
+        {
+          id: "art-steatite-key",
+          name: "Carved Steatite Key Fragment",
+          category: "Steatite",
+          icon: "🗝️",
+          period: "Mature Harappan (2600–1900 BCE)",
+          provenance: "Great Bath Hydraulic Sump Basin",
+          description: "A finely incised soapstone key token carved with geometric alignment indices.",
+          historicalSignificance: "Proves sacred water rituals preceded entry into the inner administrative sanctum.",
+          discoveredInStage: 1,
+        },
+      ];
+    });
+    handleClueFound({
+      id: "clue-bath-hydraulics",
+      title: "Great Bath Hydraulic Engineering",
+      category: "Stratigraphy",
+      icon: "🌊",
+      shortSnippet: "Sub-floor gypsum conduits allowed rapid draining and refilling of sacred water.",
+      fullNote:
+        "Operating the desilting and drainage conduits revealed an undisturbed votive compartment containing a carved steatite key fragment.",
+      discoveredInStage: 1,
+    });
+    setCurrentObjective(
+      "Sluice gates engaged! Synthesize trade records at the Northern Scribe Station.",
+    );
+  };
+
+  // Solving Scribe Station Merchant Ledger Accounting Puzzle
+  const handleMerchantPuzzleSolved = (scoreEarned: number) => {
+    setIsMerchantPuzzleOpen(false);
+    setScore((prev) => prev + scoreEarned);
+    completeObjective("obj-4-merchant-ledger");
+    setDocuments((prev) => {
+      if (prev.some((d) => d.id === "doc-house-7-ledger")) return prev;
+      return [
+        ...prev,
+        {
+          id: "doc-house-7-ledger",
+          title: "Merchant House 7 Trade Ledger",
+          docType: "Trade Ledger",
+          icon: "📜",
+          excerpt:
+            "House 7 — Consignment of Badakhshan Lapis Lazuli & 16-Unit Chert Standard — Stamped by Grand Magistrate Zebu Bull Seal.",
+          transcription:
+            "Tally records verify the sovereign seal was transferred into Warehouse 7 before evacuation.",
+          historicalContext:
+            "Standardized accounting enabled equitable commerce between Indus cities and Mesopotamian ports.",
+          discoveredInStage: 1,
+        },
+      ];
+    });
+    handleClueFound({
+      id: "clue-merchant-house-7",
+      title: "Merchant House 7 Consignment Ledger",
+      category: "Trade",
+      icon: "⚖️",
+      shortSnippet: "Consignment records connect the Lost Seal to Merchant House 7 in the market quarter.",
+      fullNote:
+        "Deciphering the scribe ledger proves the sovereign Steatite Stamp Seal was utilized by Merchant House 7 to verify royal lapis lazuli shipments.",
+      discoveredInStage: 1,
+    });
+    setCurrentObjective(
+      "Merchant House 7 identified! Examine the North Gate Clay Bulla to confirm passage clearance.",
+    );
+  };
+
   // Solving Level 2 Symbol Puzzle opens the 3D gate and transitions to Level 3!
   const handleSymbolPuzzleSolved = (scoreEarned: number) => {
+    setIsSymbolPuzzleOpen(false);
     setScore((prev) => prev + scoreEarned);
+    completeObjective("obj-8-symbol-gate");
     engineRef.current?.openGate("symbol_puzzle_gate");
     handleClueFound({
       id: "clue-symbol-frieze",
@@ -232,16 +682,21 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     setTimeout(() => {
       engineRef.current?.loadLevel("level-3-sealed-sanctum");
       setCurrentLevelId("level-3-sealed-sanctum");
+      setCurrentAct("act-4-sealed-sanctum");
       setCurrentObjective(LEVEL_DETAILS["level-3-sealed-sanctum"].objective);
+      setShowActBanner(true);
+      setTimeout(() => setShowActBanner(false), 4500);
     }, 1200);
   };
 
   // Unlocking Level 3 Keystone disengages the sacred barrier!
   const handleKeystoneUnlocked = () => {
     setIsFloorCacheOpen(false);
+    completeObjective("obj-9-sanctuary-friezes");
+    completeObjective("obj-10-keystone");
     engineRef.current?.disengageAltarBarrier();
     setCurrentObjective(
-      "The Altar Barrier is disengaged! Approach the central altar to recover the Steatite Seal.",
+      "The Altar Barrier is disengaged! Climb the altar and enter the awakened Sanctum Vortex.",
     );
     handleClueFound({
       id: "clue-keystone",
@@ -259,6 +714,25 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
   const handleSealRecovered = (scoreEarned: number) => {
     const finalScore = score + scoreEarned;
     setScore(finalScore);
+    completeObjective("obj-11-forensic");
+    engineRef.current?.markEntityInspected("steatite_seal");
+    setArtifacts((prev) => {
+      if (prev.some((a) => a.id === "art-master-seal")) return prev;
+      return [
+        ...prev,
+        {
+          id: "art-master-seal",
+          name: "The Master Steatite Stamp Seal (DK-770)",
+          category: "Steatite",
+          icon: "👑",
+          period: "Mature Harappan (2600–1900 BCE)",
+          provenance: "Mohenjo-daro Sealed Sanctum Altar",
+          description: "Vitrified white steatite stamp seal featuring a majestic humped Zebu bull and 5-sign Indus inscription.",
+          historicalSignificance: "The supreme civic artifact of Mohenjo-daro, 100% authenticated through forensic analysis.",
+          discoveredInStage: 3,
+        },
+      ];
+    });
     setIsSealForensicOpen(false);
     setIsFinished(true);
     adventureAudio.playVictory();
@@ -269,6 +743,12 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     setScore(0);
     setClues([]);
     setIsFinished(false);
+    setObjectives(INITIAL_OBJECTIVES);
+    setArtifacts([]);
+    setDocuments([]);
+    setSanctumEvidence({ glyphs: false, totem: false });
+    setIsFinaleActive(false);
+    setIsSealRevealed(false);
     setHasStarted(true);
     engineRef.current?.loadLevel("level-1-lost-city");
   };
@@ -573,8 +1053,114 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           className="w-full h-[520px] sm:h-[640px] block cursor-grab active:cursor-grabbing focus:outline-none"
         />
 
+        {/* Cinematic Intro Overlay */}
+        {isIntroActive && (
+          <div className="absolute inset-0 z-30 flex flex-col justify-between p-6 sm:p-10 pointer-events-none bg-black/40 backdrop-blur-[1px] transition-all duration-700">
+            {/* Top Letterbox Bar & Brand */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 rounded-xl bg-black/85 px-3.5 py-1.5 border border-primary/40 text-[11px] uppercase tracking-widest text-primary font-bold shadow-2xl backdrop-blur-md">
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>NAVYUVA HERITAGE • 3D EXPEDITION</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => engineRef.current?.skipCinematicIntro()}
+                className="pointer-events-auto flex items-center gap-2 rounded-xl bg-black/85 hover:bg-black px-4 py-2 border border-primary/40 text-xs font-semibold text-foreground hover:text-primary transition-all shadow-2xl backdrop-blur-md cursor-pointer"
+              >
+                <span>Skip Intro (Space / Esc)</span>
+                <ArrowRight className="h-3.5 w-3.5 text-primary" />
+              </button>
+            </div>
+
+            {/* Center Cinematic Narrative Presentation */}
+            <div className="mx-auto max-w-2xl text-center space-y-3 transition-all duration-500">
+              <div className="inline-block rounded-full bg-primary/20 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.25em] text-primary border border-primary/50 shadow-lg">
+                {INTRO_SHOT_TEXTS[introShotIndex]?.tagline}
+              </div>
+              <h2
+                className="font-serif text-3xl sm:text-5xl font-black tracking-wider uppercase drop-shadow-[0_4px_24px_rgba(0,0,0,0.95)]"
+                style={{
+                  background: "linear-gradient(135deg, #ffffff 0%, #ffcc88 50%, #ff9933 100%)",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}
+              >
+                {INTRO_SHOT_TEXTS[introShotIndex]?.title}
+              </h2>
+              <p className="text-xs sm:text-base font-medium tracking-wide text-[#f0dfc8] max-w-xl mx-auto drop-shadow-[0_2px_12px_rgba(0,0,0,0.9)]">
+                {INTRO_SHOT_TEXTS[introShotIndex]?.subtitle}
+              </p>
+            </div>
+
+            {/* Bottom Progress Track */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
+                {INTRO_SHOT_TEXTS.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-1.5 rounded-full transition-all duration-500 ${
+                      introShotIndex === idx
+                        ? "w-10 bg-primary shadow-[0_0_12px_#00ffff]"
+                        : "w-2 bg-white/25"
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                Cinematic Prologue • Mohenjo-daro
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Level 3 portal reveal: the payoff is a short, skippable in-engine
+            camera sequence with readable story beats rather than a silent teleport. */}
+        {isFinaleActive && (
+          <div className="absolute inset-0 z-30 pointer-events-none flex items-end justify-center bg-gradient-to-t from-black/75 via-transparent to-black/30 px-6 pb-12 text-center">
+            <div className="max-w-xl animate-in fade-in zoom-in-95 duration-500">
+              <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.34em] text-cyan-200">
+                Sanctum Resonance • Sequence {finaleShotIndex + 1}/3
+              </div>
+              <h2 className="font-serif text-3xl font-black uppercase tracking-wide text-[#fff0c9] drop-shadow-[0_0_20px_rgba(0,229,255,0.7)] sm:text-5xl">
+                {finaleShotIndex === 0
+                  ? "The Vortex Awakens"
+                  : finaleShotIndex === 1
+                    ? "A Seal Returns to Light"
+                    : "The Lost Seal Revealed"}
+              </h2>
+              <p className="mt-3 text-xs tracking-wide text-[#d8f8ff] sm:text-sm">
+                {finaleShotIndex === 0
+                  ? "The aligned keystone releases the altar's ancient harmonic lock."
+                  : finaleShotIndex === 1
+                    ? "Four millennia of dust lift as the sanctum answers its forgotten authority."
+                    : "The Master Steatite Stamp Seal materializes above the altar for authentication."}
+              </p>
+              <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-white/55">Press Space, Enter, or Escape to skip</p>
+            </div>
+          </div>
+        )}
+
+        {/* Act Banner Notification */}
+        {showActBanner && !isIntroActive && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-500 animate-bounce">
+            <div className="flex items-center gap-3.5 rounded-2xl border-2 border-primary/70 bg-black/90 px-6 py-3 shadow-[0_0_30px_rgba(0,200,200,0.3)] backdrop-blur-md">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/60 font-bold font-serif text-xs shadow-inner">
+                {STORY_ACTS[currentAct]?.actNumber}
+              </div>
+              <div>
+                <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-primary">
+                  {STORY_ACTS[currentAct]?.title}
+                </div>
+                <div className="text-xs text-[#f5ebd9] font-serif">
+                  {STORY_ACTS[currentAct]?.subtitle}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* In-World Proximity [E] Interaction Prompt */}
-        {nearbyEntity && !isAnyModalOpen && (
+        {nearbyEntity && !isAnyModalOpen && !isIntroActive && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-20 pointer-events-none z-20 animate-bounce">
             <div className="flex items-center gap-2 rounded-xl border border-primary bg-black/90 px-4 py-2 text-xs font-bold text-foreground shadow-2xl backdrop-blur-md">
               <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-black font-mono text-[11px]">
@@ -584,6 +1170,21 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             </div>
           </div>
         )}
+
+        {/* Archaeological Clue Discovery Toast */}
+        {discoveryToast && !isIntroActive && (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
+            <div className="flex items-center gap-2.5 rounded-xl border border-primary/60 bg-black/95 px-4 py-2 text-xs font-medium text-foreground shadow-2xl backdrop-blur-md">
+              <span className="text-base">{discoveryToast.icon}</span>
+              <span className="text-gold font-bold font-serif uppercase tracking-wider text-[11px]">
+                New Clue:
+              </span>
+              <span className="text-[#f5ebd9] font-medium">{discoveryToast.title}</span>
+            </div>
+          </div>
+        )}
+
+
 
         {/* On-Screen Mobile Touch Controls Overlay */}
         {isTouchDevice && (
@@ -723,6 +1324,18 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
         onClueFound={handleClueFound}
       />
 
+      <WaterFlowPuzzleModal
+        isOpen={isWaterPuzzleOpen}
+        onClose={() => setIsWaterPuzzleOpen(false)}
+        onPuzzleSolved={handleWaterPuzzleSolved}
+      />
+
+      <MerchantAccountingModal
+        isOpen={isMerchantPuzzleOpen}
+        onClose={() => setIsMerchantPuzzleOpen(false)}
+        onPuzzleSolved={handleMerchantPuzzleSolved}
+      />
+
       <SymbolPuzzleModal
         isOpen={isSymbolPuzzleOpen}
         onClose={() => setIsSymbolPuzzleOpen(false)}
@@ -741,7 +1354,17 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
         onRecovered={handleSealRecovered}
       />
 
-      <CluePanel isOpen={isCluePanelOpen} onClose={() => setIsCluePanelOpen(false)} clues={clues} />
+      <CluePanel
+        isOpen={isCluePanelOpen}
+        onClose={() => setIsCluePanelOpen(false)}
+        currentActId={currentAct}
+        objectives={objectives}
+        clues={clues}
+        artifacts={artifacts}
+        documents={documents}
+        score={score}
+        maxScore={maxScore}
+      />
     </div>
   );
 }

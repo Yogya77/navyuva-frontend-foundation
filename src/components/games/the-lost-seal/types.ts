@@ -8,6 +8,49 @@ export interface ArchaeologicalClue {
   discoveredInStage: number;
 }
 
+export interface JournalArtifact {
+  id: string;
+  name: string;
+  category: "Ceramic" | "Steatite" | "Metal" | "Tool" | "Glyptic";
+  icon: string;
+  period: string;
+  provenance: string;
+  description: string;
+  historicalSignificance: string;
+  discoveredInStage: number;
+}
+
+export interface JournalDocument {
+  id: string;
+  title: string;
+  docType: "Field Log" | "Trade Ledger" | "Epigraphic Inscription" | "Bulla Tag";
+  icon: string;
+  excerpt: string;
+  transcription: string;
+  historicalContext: string;
+  discoveredInStage: number;
+}
+
+export interface ExpeditionObjective {
+  id: string;
+  actId: "act-1-discovery" | "act-2-lost-city" | "act-3-merchant-quarter" | "act-4-sealed-sanctum";
+  title: string;
+  description: string;
+  completed: boolean;
+  order: number;
+}
+
+export interface ExpeditionStats {
+  cluesCount: number;
+  totalClues: number;
+  artifactsCount: number;
+  totalArtifacts: number;
+  documentsCount: number;
+  totalDocuments: number;
+  puzzlesSolved: number;
+  totalPuzzles: number;
+}
+
 export interface ExcavationObject {
   id: string;
   name: string;
@@ -57,3 +100,4 @@ export interface SealInspectionArea {
   historicalMeaning: string;
   verified: boolean;
 }
+

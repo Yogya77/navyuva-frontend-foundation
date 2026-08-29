@@ -21,6 +21,8 @@ export class PlayerPhysicsController {
   private acceleration = 38.0;
   private friction = 30.0;
   private playerRadius = 0.42;
+  private playerHeight = 1.8;
+  private stepHeight = 0.48; // Max height of steps/curbs character can smoothly step up
 
   public setSpawn(pos: THREE.Vector3, rot: number) {
     this.state.position.copy(pos);
@@ -81,10 +83,6 @@ export class PlayerPhysicsController {
 
       // Camera view direction: (sinYaw, 0, cosYaw)
       // Camera right direction: (-cosYaw, 0, sinYaw)
-      // W (Forward): moves along (sinYaw, cosYaw)
-      // S (Backward): moves along (-sinYaw, -cosYaw)
-      // D (Right): moves along (-cosYaw, sinYaw)
-      // A (Left): moves along (cosYaw, -sinYaw)
       moveDirX = normFwd * sinYaw - normRt * cosYaw;
       moveDirZ = normFwd * cosYaw + normRt * sinYaw;
     }
@@ -102,34 +100,34 @@ export class PlayerPhysicsController {
       this.state.velocity.x = THREE.MathUtils.lerp(
         currentSpeedX,
         targetVx,
-        Math.min(1.0, this.acceleration * dt * 0.22),
+        Math.min(1.0, this.acceleration * dt * 0.28),
       );
       this.state.velocity.z = THREE.MathUtils.lerp(
         currentSpeedZ,
         targetVz,
-        Math.min(1.0, this.acceleration * dt * 0.22),
+        Math.min(1.0, this.acceleration * dt * 0.28),
       );
 
-      // Smoothly rotate character toward actual movement heading
+      // Smoothly rotate character toward actual movement heading with responsive angular lerp
       const targetAngle = Math.atan2(moveDirX, moveDirZ);
       let angleDiff = targetAngle - this.state.direction;
       while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-      this.state.direction += angleDiff * Math.min(1.0, dt * 15);
+      this.state.direction += angleDiff * Math.min(1.0, dt * 18);
 
       this.state.isMoving = true;
     } else {
       this.state.velocity.x = THREE.MathUtils.lerp(
         currentSpeedX,
         0,
-        Math.min(1.0, this.friction * dt * 0.35),
+        Math.min(1.0, this.friction * dt * 0.42),
       );
       this.state.velocity.z = THREE.MathUtils.lerp(
         currentSpeedZ,
         0,
-        Math.min(1.0, this.friction * dt * 0.35),
+        Math.min(1.0, this.friction * dt * 0.42),
       );
-      if (Math.hypot(this.state.velocity.x, this.state.velocity.z) < 0.05) {
+      if (Math.hypot(this.state.velocity.x, this.state.velocity.z) < 0.04) {
         this.state.velocity.x = 0;
         this.state.velocity.z = 0;
         this.state.isMoving = false;
@@ -150,20 +148,61 @@ export class PlayerPhysicsController {
     // Apply gravity
     this.state.velocity.y += this.gravity * dt;
 
-    // 4. Collision Detection & Position Integration
-    const nextX = this.state.position.x + this.state.velocity.x * dt;
-    const nextZ = this.state.position.z + this.state.velocity.z * dt;
-    const nextY = this.state.position.y + this.state.velocity.y * dt;
+    // 4. Determine Dynamic Ground Elevation (Stairs / Platforms / Stepped Altars)
+    const currentX = this.state.position.x;
+    const currentZ = this.state.position.z;
+    const currentY = this.state.position.y;
 
-    // Check X collision against colliders
+    let targetGroundY = 0;
+    for (const col of colliders) {
+      if (col.isWalkable !== false && col.maxY !== undefined) {
+        if (
+          currentX >= col.minX - 0.12 &&
+          currentX <= col.maxX + 0.12 &&
+          currentZ >= col.minZ - 0.12 &&
+          currentZ <= col.maxZ + 0.12
+        ) {
+          // If player is on or near the step surface
+          if (currentY >= col.maxY - this.stepHeight - 0.1) {
+            targetGroundY = Math.max(targetGroundY, col.maxY);
+          }
+        }
+      }
+    }
+
+    // 5. 3D Collision Detection & Step-Up Traversal
+    const nextX = currentX + this.state.velocity.x * dt;
+    const nextZ = currentZ + this.state.velocity.z * dt;
+    let nextY = currentY + this.state.velocity.y * dt;
+
+    // Helper: Check if a collider blocks horizontal movement at player's current height
+    const isSolidBlocker = (col: BoxCollider3D, testX: number, testZ: number): boolean => {
+      // Check horizontal AABB overlap
+      const overlapX = testX + this.playerRadius > col.minX && testX - this.playerRadius < col.maxX;
+      const overlapZ = testZ + this.playerRadius > col.minZ && testZ - this.playerRadius < col.maxZ;
+      if (!overlapX || !overlapZ) return false;
+
+      // If it's a walkable step within stepHeight, allow smooth step-up
+      if (col.isWalkable && col.maxY !== undefined) {
+        if (col.maxY <= currentY + this.stepHeight + 0.05) {
+          return false; // Walkable step, do not block horizontally
+        }
+      }
+
+      // Check vertical 3D height overlap
+      const colMinY = col.minY ?? 0;
+      const colMaxY = col.maxY ?? 100;
+      const playerFeet = currentY;
+      const playerHead = currentY + this.playerHeight;
+
+      const overlapY = playerHead > colMinY && playerFeet < colMaxY;
+      return overlapY;
+    };
+
+    // Check X collision against colliders (Wall-sliding supported)
     let canMoveX = true;
     for (const col of colliders) {
-      if (
-        nextX + this.playerRadius > col.minX &&
-        nextX - this.playerRadius < col.maxX &&
-        this.state.position.z + this.playerRadius > col.minZ &&
-        this.state.position.z - this.playerRadius < col.maxZ
-      ) {
+      if (isSolidBlocker(col, nextX, currentZ)) {
         canMoveX = false;
         this.state.velocity.x = 0;
         break;
@@ -174,12 +213,7 @@ export class PlayerPhysicsController {
     // Check Z collision against colliders
     let canMoveZ = true;
     for (const col of colliders) {
-      if (
-        this.state.position.x + this.playerRadius > col.minX &&
-        this.state.position.x - this.playerRadius < col.maxX &&
-        nextZ + this.playerRadius > col.minZ &&
-        nextZ - this.playerRadius < col.maxZ
-      ) {
+      if (isSolidBlocker(col, this.state.position.x, nextZ)) {
         canMoveZ = false;
         this.state.velocity.z = 0;
         break;
@@ -187,18 +221,42 @@ export class PlayerPhysicsController {
     }
     if (canMoveZ) this.state.position.z = nextZ;
 
-    // Check Ground / Y Collision
-    if (nextY <= 0) {
-      this.state.position.y = 0;
+    // Re-evaluate ground elevation after horizontal movement (for smooth step-up)
+    let stepUpGroundY = 0;
+    for (const col of colliders) {
+      if (col.isWalkable !== false && col.maxY !== undefined) {
+        if (
+          this.state.position.x >= col.minX - 0.12 &&
+          this.state.position.x <= col.maxX + 0.12 &&
+          this.state.position.z >= col.minZ - 0.12 &&
+          this.state.position.z <= col.maxZ + 0.12
+        ) {
+          if (this.state.position.y >= col.maxY - this.stepHeight - 0.1) {
+            stepUpGroundY = Math.max(stepUpGroundY, col.maxY);
+          }
+        }
+      }
+    }
+    targetGroundY = Math.max(targetGroundY, stepUpGroundY);
+
+    // 6. Ground & Vertical Position Resolution
+    if (nextY <= targetGroundY) {
+      this.state.position.y = targetGroundY;
       this.state.velocity.y = 0;
       this.state.isGrounded = true;
       this.state.isJumping = false;
     } else {
-      this.state.position.y = nextY;
-      this.state.isGrounded = false;
+      // If walking up a step, smoothly step up if grounded
+      if (this.state.isGrounded && targetGroundY > this.state.position.y) {
+        this.state.position.y = THREE.MathUtils.lerp(this.state.position.y, targetGroundY, Math.min(1.0, dt * 25));
+        this.state.velocity.y = 0;
+      } else {
+        this.state.position.y = nextY;
+        this.state.isGrounded = false;
+      }
     }
 
-    // 5. Update Animation State
+    // 7. Update Animation State
     if (!this.state.isGrounded) {
       this.state.animState = this.state.velocity.y > 0 ? "jump" : "fall";
     } else if (this.state.isMoving) {
@@ -208,3 +266,4 @@ export class PlayerPhysicsController {
     }
   }
 }
+
