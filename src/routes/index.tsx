@@ -177,6 +177,98 @@ function Index() {
         </div>
       </section>
 
+      {/* Featured Museum Exhibits Showcase */}
+      <section className="py-24 bg-background">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
+            <SectionHeading
+              eyebrow="Archival Highlights"
+              title="Featured Indus Masterworks"
+              subtitle="Authentic archaeological artifacts recovered from Harappa and Mohenjo-daro."
+              className="mx-0 text-left"
+            />
+            <Button variant="outline" className="border-primary/40 text-primary hover:bg-primary hover:text-black" asChild>
+              <Link to="/museum">
+                View Full Museum Collection <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              {
+                name: "The Great Zebu Bull Seal",
+                category: "Seals & Epigraphy",
+                site: "Mohenjo-daro",
+                period: "2600–1900 BCE",
+                image: "/images/artifacts/indus-seal-zebu-bull.jpg",
+                desc: "High-relief intaglio carved in white vitrified steatite with undeciphered Indus script.",
+              },
+              {
+                name: "Terracotta 'Mother Goddess'",
+                category: "Terracotta & Sculpture",
+                site: "Harappa",
+                period: "2600–1900 BCE",
+                image: "/images/artifacts/terracotta-mother-goddess.jpg",
+                desc: "Iconic hand-modeled female votive figurine with fan-shaped headdress and layered choker collars.",
+              },
+              {
+                name: "Pipal Tree Deity Ritual Seal",
+                category: "Seals & Epigraphy",
+                site: "Mohenjo-daro",
+                period: "2600–1900 BCE",
+                image: "/images/artifacts/indus-seal-seven-figures-pipal.jpg",
+                desc: "Sacred narrative seal depicting a horned tree deity, worshipper, and seven processional celebrants.",
+              },
+              {
+                name: "Horned Anthropomorphic Mask",
+                category: "Terracotta & Sculpture",
+                site: "Mohenjo-daro",
+                period: "2600–1900 BCE",
+                image: "/images/artifacts/terracotta-horned-mask.jpg",
+                desc: "Miniature ceramic ritual maskette with curved bovine horns and attachment perforations.",
+              },
+            ].map((item) => (
+              <div
+                key={item.name}
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-border/50 bg-stone-950/80 p-4 transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/50 hover:shadow-xl hover:shadow-primary/10"
+              >
+                <div className="relative flex h-52 w-full items-center justify-center overflow-hidden rounded-xl border border-border/40 bg-gradient-to-b from-stone-900 via-stone-950 to-black p-3">
+                  <img
+                    src={item.image}
+                    alt={item.name}
+                    className="max-h-full max-w-full rounded object-contain transition-transform duration-700 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <span className="absolute left-2.5 top-2.5 rounded border border-primary/30 bg-black/75 px-2 py-0.5 font-serif text-[10px] font-semibold uppercase tracking-wider text-primary backdrop-blur-sm">
+                    {item.category}
+                  </span>
+                </div>
+                <div className="mt-4 flex flex-1 flex-col justify-between">
+                  <div>
+                    <span className="font-mono text-[11px] text-muted-foreground">{item.site} • {item.period}</span>
+                    <h3 className="mt-1 font-serif text-base font-bold text-foreground group-hover:text-primary transition-colors">
+                      {item.name}
+                    </h3>
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                      {item.desc}
+                    </p>
+                  </div>
+                  <div className="mt-4 border-t border-border/30 pt-3">
+                    <Link
+                      to="/museum"
+                      className="inline-flex items-center text-xs font-serif font-semibold text-primary transition-colors group-hover:underline"
+                    >
+                      Examine Exhibit <ArrowRight className="ml-1 h-3 w-3" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

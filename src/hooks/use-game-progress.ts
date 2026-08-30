@@ -23,11 +23,27 @@ export interface GameRewardPayload {
 const STORAGE_KEY = "navyuva_heritage_progress_v1";
 const PROGRESS_EVENT = "navyuva:progress-changed";
 
-// Default starter state: Pottery and Chert Blade available as starter exhibits
+// Default starter state: Curated Harappan photographic exhibits unlocked
 const DEFAULT_STATE: GameProgressState = {
   completedGameIds: [],
   gameScores: {},
-  unlockedArtifactIds: ["pottery", "blade"],
+  unlockedArtifactIds: [
+    "seal",
+    "seal-unicorn",
+    "seal-seven-figures",
+    "seal-confronting-bulls",
+    "harappa-tablets",
+    "figurine-mother-goddess",
+    "figurine-lady-rosettes",
+    "figurine-archaic-head",
+    "mask-horned",
+    "figurine-painted-bearer",
+    "figurine-bull-toy",
+    "tablet-hunting-plaque",
+    "jewelry-royal-necklace",
+    "jewelry-bronze-bangles",
+    "blade",
+  ],
   cluesCollected: 0,
   totalScore: 0,
 };
