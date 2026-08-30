@@ -32,7 +32,15 @@ export function ArtifactCard({ artifact, selected, onSelect }: ArtifactCardProps
         )}
         aria-hidden="true"
       >
-        {locked ? <Lock className="h-7 w-7 text-muted-foreground" /> : artifact.emoji}
+        {locked ? (
+  <Lock className="h-7 w-7 text-muted-foreground" />
+) : (
+  <img
+    src={`/artifacts/${artifact.id}.jpg`}
+    alt={artifact.name}
+    className="h-24 w-24 object-contain"
+  />
+)}
       </span>
       <span className="mt-4 block font-serif text-base font-semibold text-card-foreground">
         {artifact.name}
