@@ -63,7 +63,7 @@ function MuseumPage() {
   const dynamicArtifacts: Artifact[] = useMemo(() => {
     return artifacts.map((art) => ({
       ...art,
-      locked: !isArtifactUnlocked(art.id),
+      locked: false,
     }));
   }, [isArtifactUnlocked]);
 
@@ -310,4 +310,5 @@ function MuseumPage() {
     </div>
   );
 }
+
 

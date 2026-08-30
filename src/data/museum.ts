@@ -49,11 +49,11 @@ export const civilizations: Civilization[] = [
     highlights: ["Grid Urban Planning", "Steatite Stamp Seals", "Advanced Hydraulic Engineering", "Standardized Metrology"],
     bannerDescription: "One of the world's earliest urban civilizations, renowned for planned brick cities, standardized weights, sophisticated sanitary drain systems, and an enigmatic undeciphered script.",
   },
-  { id: "vedic", name: "Early Vedic Period", period: "1500–1000 BCE", locked: true },
-  { id: "mahajanapadas", name: "Mahajanapadas", period: "600–300 BCE", locked: true },
-  { id: "maurya", name: "Maurya Empire", period: "322–185 BCE", locked: true },
-  { id: "gupta", name: "Gupta Empire", period: "320–550 CE", locked: true },
-  { id: "medieval", name: "Medieval Period", period: "1200–1750 CE", locked: true },
+  { id: "vedic", name: "Early Vedic Period", period: "1500–1000 BCE", locked: false },
+  { id: "mahajanapadas", name: "Mahajanapadas", period: "600–300 BCE", locked: false },
+  { id: "maurya", name: "Maurya Empire", period: "322–185 BCE", locked: false },
+  { id: "gupta", name: "Gupta Empire", period: "320–550 CE", locked: false },
+  { id: "medieval", name: "Medieval Period", period: "1200–1750 CE", locked: false },
 ];
 
 export const artifacts: Artifact[] = [
@@ -370,7 +370,7 @@ export const artifacts: Artifact[] = [
     image: "/images/artifacts/harappan-bronze-bangles.jpg",
     emoji: "🟠",
     short: "Slender carnelian bead etched with white geometric alkali patterns, highly prized across ancient Mesopotamia.",
-    locked: true,
+    locked: false,
     featured: false,
     type: "Etched Long Barrel Bead",
     period: "Mature Harappan (c. 2600–1900 BCE)",
@@ -404,7 +404,7 @@ export const artifacts: Artifact[] = [
     image: "/images/artifacts/indus-seal-zebu-bull.jpg",
     emoji: "⚖️",
     short: "Precisely cut cubical stone weight from the binary and decimal Indus metrology system.",
-    locked: true,
+    locked: false,
     featured: false,
     type: "Standardized Balance Weight",
     period: "Mature Harappan (c. 2600–1900 BCE)",
@@ -649,5 +649,6 @@ export const museumProgress = {
   cluesCollected: 0,
   cluesTotal: 15,
 };
+
 
 
