@@ -27,45 +27,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SectionHeading } from "@/components/home/SectionHeading";
-
-export const CONTRIBUTION_TYPES = [
-  "Historical Monument",
-  "Artifact",
-  "Historical Event",
-  "Civilization",
-  "Architecture",
-  "Archaeological Site",
-  "Historical Figure",
-  "Historical Fact",
-  "Correction",
-  "General Feedback",
-  "Other",
-] as const;
-
-export type ContributionType = (typeof CONTRIBUTION_TYPES)[number];
-
-export interface HeritageContributionData {
-  id: string;
-  name: string;
-  email: string;
-  type: ContributionType;
-  title: string;
-  message: string;
-  location: string;
-  source: string;
-  createdAt: string;
-  status: "pending" | "reviewed" | "approved";
-}
+import {
+  CONTRIBUTION_TYPES,
+  type ContributionType,
+  type HeritageContributionData,
+  CONTRIBUTIONS_STORAGE_KEY,
+  CONTRIBUTIONS_EVENT,
+} from "@/types/community";
 
 interface FormErrors {
-  name?: string;
-  email?: string;
-  type?: string;
-  title?: string;
-  message?: string;
+  name?: string | undefined;
+  email?: string | undefined;
+  type?: string | undefined;
+  title?: string | undefined;
+  message?: string | undefined;
 }
-
-const STORAGE_KEY = "navyuva_community_contributions_v1";
 
 const ARCHIVE_PILLS = [
   "Monuments",
@@ -91,19 +67,30 @@ export function HeritageContribution() {
   const [recentContributions, setRecentContributions] = useState<HeritageContributionData[]>([]);
   const [showRecentDrawer, setShowRecentDrawer] = useState(false);
 
-  // Load existing contributions on mount
+  // Load existing contributions on mount & sync across storage events
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setRecentContributions(parsed);
+    const loadContributions = () => {
+      try {
+        const stored = localStorage.getItem(CONTRIBUTIONS_STORAGE_KEY);
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRecentContributions(parsed);
+          }
         }
+      } catch {
+        // Ignore local storage parse errors
       }
-    } catch {
-      // Ignore local storage parse errors
-    }
+    };
+
+    loadContributions();
+    window.addEventListener(CONTRIBUTIONS_EVENT, loadContributions);
+    window.addEventListener("storage", loadContributions);
+
+    return () => {
+      window.removeEventListener(CONTRIBUTIONS_EVENT, loadContributions);
+      window.removeEventListener("storage", loadContributions);
+    };
   }, []);
 
   const clearError = (field: keyof FormErrors) => {
@@ -162,11 +149,12 @@ export function HeritageContribution() {
       };
 
       try {
-        const existing = localStorage.getItem(STORAGE_KEY);
+        const existing = localStorage.getItem(CONTRIBUTIONS_STORAGE_KEY);
         const parsed: HeritageContributionData[] = existing ? JSON.parse(existing) : [];
         const updated = [newContribution, ...parsed];
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+        localStorage.setItem(CONTRIBUTIONS_STORAGE_KEY, JSON.stringify(updated));
         setRecentContributions(updated);
+        window.dispatchEvent(new CustomEvent(CONTRIBUTIONS_EVENT));
       } catch {
         // Fallback for private mode or storage limit
       }
