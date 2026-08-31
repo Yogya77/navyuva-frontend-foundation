@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { FeatureCard } from "@/components/home/FeatureCard";
 import { StepItem } from "@/components/home/StepItem";
 import { SectionHeading } from "@/components/home/SectionHeading";
+import { HeritageContribution } from "@/components/community/HeritageContribution";
 import heroImage from "@/assets/hero-museum.jpg";
 
 export const Route = createFileRoute("/")({
@@ -289,6 +290,9 @@ function Index() {
           </div>
         </div>
       </section>
+
+      {/* Community Heritage Contribution Box */}
+      <HeritageContribution />
     </div>
   );
 }
