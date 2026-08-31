@@ -3,6 +3,7 @@ import type { InteractiveEntity3D, BoxCollider3D } from "../types";
 import type { StylizedMaterialPalette } from "../materials";
 import {
   createSkyDome,
+  createProceduralCloudSky,
   createRollingTerrain,
   createStylizedRock,
   createGrassTuft,
@@ -33,6 +34,13 @@ import {
   type RuneGlow,
   type ActivationPulse,
 } from "../vfx";
+import {
+  createFieldJournalModel,
+  createStratigraphyProfileModel,
+  createHydraulicSluiceModel,
+  createScribeTabletDeskModel,
+  createGateBullaPedestalModel,
+} from "../archaeologicalModels";
 
 export interface LevelSceneResult {
   group: THREE.Group;
@@ -85,9 +93,9 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     });
   };
 
-  // 1. Radiant Sky Dome Enclosure
-  const skyDome = createSkyDome(mats);
-  group.add(skyDome);
+  // 1. Radiant Atmospheric Sky Dome Enclosure with Animated 3D Clouds
+  const cloudSky = createProceduralCloudSky(mats);
+  group.add(cloudSky.group);
 
   // 2. Distant Monumental Harappan Skyline (Citadel Mounds, Granaries, and Towers)
   const skyline = createDistantSkyline(mats);
@@ -251,11 +259,7 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
 
   // 14. CINEMATIC LEVEL 1 STORY & PUZZLE PROGRESSION ENTITIES
   // Quest Step 1: Field Journal at the Sorting Station
-  const logbookGroup = new THREE.Group();
-  const logMesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.5), mats.clothTent);
-  logMesh.position.y = 1.05;
-  logMesh.castShadow = true;
-  logbookGroup.add(logMesh);
+  const logbookModel = createFieldJournalModel(mats);
   addEntity(
     "camp_logbook",
     "marker",
@@ -264,19 +268,12 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     -13,
     0,
     10,
-    logbookGroup,
+    logbookModel,
     "The logbook reveals the Master Steatite Seal is missing! Inspect the excavation dig trench stratigraphy.",
   );
 
   // Quest Step 2: Stratigraphy Profile in Excavation Trench
-  const trenchMarkerGroup = new THREE.Group();
-  const stake = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2, 8), mats.torchWood);
-  stake.position.y = 0.6;
-  stake.castShadow = true;
-  trenchMarkerGroup.add(stake);
-  const flag = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.02), mats.clothTrim);
-  flag.position.set(0.2, 1.0, 0);
-  trenchMarkerGroup.add(flag);
+  const trenchModel = createStratigraphyProfileModel(mats);
   addEntity(
     "trench_strata",
     "mound",
@@ -285,21 +282,12 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     -15,
     0,
     18,
-    trenchMarkerGroup,
+    trenchModel,
     "Mature Harappan stratum confirmed! Search the Great Bath and operate the hydraulic sluice valves.",
   );
 
   // Quest Step 3: Great Bath Hydraulic Sluice Valve Control (Environmental Puzzle)
-  const sluiceGroup = new THREE.Group();
-  const valveBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 0.8, 12), mats.goldBrass);
-  valveBase.position.y = 0.4;
-  valveBase.castShadow = true;
-  sluiceGroup.add(valveBase);
-  const valveWheel = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 8, 16), mats.goldBrass);
-  valveWheel.position.set(0, 0.85, 0);
-  valveWheel.rotation.x = Math.PI / 2;
-  valveWheel.castShadow = true;
-  sluiceGroup.add(valveWheel);
+  const sluiceModel = createHydraulicSluiceModel(mats);
   addEntity(
     "bath_sluice",
     "water_puzzle",
@@ -308,16 +296,12 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     10,
     0,
     -6,
-    sluiceGroup,
+    sluiceModel,
     "Sluice gates engaged! Synthesize trade records at the Northern Scribe Station.",
   );
 
   // Quest Step 4: Scribe Station Ledger Archives (Accounting Puzzle)
-  const slabGroup = new THREE.Group();
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.2, 0.9), mats.steatiteSeal);
-  slab.position.y = 0.1;
-  slab.castShadow = true;
-  slabGroup.add(slab);
+  const scribeDeskModel = createScribeTabletDeskModel(mats);
   addEntity(
     "northern_tablet",
     "merchant_puzzle",
@@ -326,16 +310,12 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     -7,
     0,
     -20,
-    slabGroup,
+    scribeDeskModel,
     "Merchant House 7 identified! Examine the North Gate Clay Bulla to confirm passage clearance.",
   );
 
   // Quest Step 5: Damaged Clay Bulla Tag by the North Gate
-  const sealImpGroup = new THREE.Group();
-  const sealImp = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.12, 16), mats.brickDark);
-  sealImp.position.y = 0.06;
-  sealImp.castShadow = true;
-  sealImpGroup.add(sealImp);
+  const bullaPedestalModel = createGateBullaPedestalModel(mats);
   addEntity(
     "seal_impression",
     "seal_impression",
@@ -344,7 +324,7 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     0,
     0,
     -24,
-    sealImpGroup,
+    bullaPedestalModel,
     "Northern passage clearance authorized! Pass through the monumental archway into the Merchant Quarter.",
   );
 
@@ -429,13 +409,15 @@ export function createLevel1LostCity(mats: StylizedMaterialPalette): LevelSceneR
     interactiveEntities,
     spawnPoint: new THREE.Vector3(0, 0, 26),
     spawnRotation: Math.PI,
-    sunColor: 0xffedd0,
-    sunIntensity: 2.8,
-    ambientColor: 0x8aa8c8,
-    fogColor: 0xe8cfb0,
-    fogDensity: 0.007,
+    sunColor: 0xffeed8,
+    sunIntensity: 2.0,
+    ambientColor: 0x483a2d,
+    fogColor: 0x6da4d6, // Clean atmospheric cerulean blue haze
+    fogDensity: 0.005,
     animatedProps: {
       update: (dt, time) => {
+        // Slowly drifting 3D volumetric clouds
+        cloudSky.update(dt, time);
         // Water caustic wave oscillation
         greatBath.waterMesh.position.y = -3.2 + 1.4 + Math.sin(time * 2.4) * 0.035;
         // Torch flicker

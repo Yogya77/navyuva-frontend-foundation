@@ -18,6 +18,11 @@ import {
   createMagicalPortal,
   type MagicalPortal,
 } from "../vfx";
+import {
+  createSanctuaryWallFriezeModel,
+  createSanctuaryKeystoneModel,
+  createMasterSteatiteSealModel,
+} from "../archaeologicalModels";
 
 export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelSceneResult {
   const group = new THREE.Group();
@@ -371,15 +376,7 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
 
   // 8. Interactive Sanctuary Exploration Finds (Required for unlocking the Altar Barrier)
   // Find 1: East Sanctuary Frieze (Script Line Inscription)
-  const frieze1Group = new THREE.Group();
-  const frieze1 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.25), mats.steatiteSeal);
-  frieze1.position.y = 0.9;
-  frieze1.castShadow = true;
-  frieze1Group.add(frieze1);
-  const frieze1Frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 0.18), mats.goldBrass);
-  frieze1Frame.position.y = 0.9;
-  frieze1Group.add(frieze1Frame);
-
+  const frieze1Model = createSanctuaryWallFriezeModel(mats, false);
   addEntity(
     "tablet",
     "tablet",
@@ -388,20 +385,12 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     17.5,
     0.8,
     4,
-    frieze1Group,
+    frieze1Model,
     "Inspect the West Wall Totem Relief to find the keystone formula.",
   );
 
   // Find 2: West Sanctuary Frieze (Zebu Totem Sacred Relief)
-  const frieze2Group = new THREE.Group();
-  const frieze2 = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.8, 0.25), mats.steatiteSeal);
-  frieze2.position.y = 0.9;
-  frieze2.castShadow = true;
-  frieze2Group.add(frieze2);
-  const frieze2Frame = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.1, 0.18), mats.goldBrass);
-  frieze2Frame.position.y = 0.9;
-  frieze2Group.add(frieze2Frame);
-
+  const frieze2Model = createSanctuaryWallFriezeModel(mats, true);
   addEntity(
     "crate",
     "crate",
@@ -410,28 +399,12 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     -17.5,
     0.8,
     4,
-    frieze2Group,
+    frieze2Model,
     "Approach the Sanctuary Keystone Mechanism in front of the gate!",
   );
 
   // Find 3: Sanctuary Keystone Mechanism (Triggers the unlocking of the Altar Barrier)
-  const keystoneGroup = new THREE.Group();
-  const keystonePlinth = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, 0.3, 20), mats.brickDark);
-  keystonePlinth.position.y = 0.15;
-  keystonePlinth.castShadow = true;
-  keystonePlinth.receiveShadow = true;
-  keystoneGroup.add(keystonePlinth);
-
-  const keystoneDial = new THREE.Mesh(new THREE.CylinderGeometry(0.85, 0.95, 0.2, 20), mats.goldBrass);
-  keystoneDial.position.y = 0.4;
-  keystoneDial.castShadow = true;
-  keystoneGroup.add(keystoneDial);
-
-  const keystoneCore = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.6, 16), mats.steatiteSeal);
-  keystoneCore.position.y = 0.75;
-  keystoneCore.castShadow = true;
-  keystoneGroup.add(keystoneCore);
-
+  const keystoneModel = createSanctuaryKeystoneModel(mats);
   addEntity(
     "underground_cache",
     "underground_cache",
@@ -440,60 +413,12 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
     0,
     0,
     2,
-    keystoneGroup,
+    keystoneModel,
     "The Altar Barrier is disengaged! Approach the central altar to recover the Steatite Seal.",
   );
 
   // 9. THE HERO STEATITE STAMP SEAL (Masterpiece Artifact Climax)
-  const sealGroup = new THREE.Group();
-
-  // White vitrified steatite seal body (Authentic Harappan square stamp)
-  const sealBody = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.95, 0.2), mats.steatiteSeal);
-  sealBody.castShadow = true;
-  sealGroup.add(sealBody);
-
-  // Engraved relief boss on reverse
-  const boss = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.25, 0.22, 16), mats.steatiteSeal);
-  boss.position.set(0, 0, -0.18);
-  boss.rotation.x = Math.PI / 2;
-  sealGroup.add(boss);
-
-  // Glowing Concentric Cyan/Teal Emissive Halo Rings (picked up brilliantly by Bloom pass)
-  const haloMat1 = new THREE.MeshStandardMaterial({
-    color: 0x00ffff,
-    emissive: new THREE.Color(0x00ddff),
-    emissiveIntensity: 3.2,
-    transparent: true,
-    opacity: 0.85,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  });
-  const haloRing1 = new THREE.Mesh(new THREE.TorusGeometry(0.72, 0.035, 8, 36), haloMat1);
-  sealGroup.add(haloRing1);
-
-  const haloMat2 = new THREE.MeshStandardMaterial({
-    color: 0xffd700,
-    emissive: new THREE.Color(0xffaa00),
-    emissiveIntensity: 2.8,
-    transparent: true,
-    opacity: 0.7,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  });
-  const haloRing2 = new THREE.Mesh(new THREE.TorusGeometry(0.92, 0.025, 8, 36), haloMat2);
-  haloRing2.rotation.x = Math.PI / 3;
-  sealGroup.add(haloRing2);
-
-  // Hero Spotlight & Divine Warm Point Light shining directly on the Seal
-  const altarLight = new THREE.PointLight(0xffb844, 3.6, 14, 1.2);
-  altarLight.position.set(0, 4.8, -12);
-  altarLight.castShadow = true;
-  group.add(altarLight);
-
-  const sealCyanLight = new THREE.PointLight(0x00e8ff, 2.5, 8, 1.4);
-  sealCyanLight.position.set(0, 3.2, -11.5);
-  group.add(sealCyanLight);
-
+  const sealGroup = createMasterSteatiteSealModel(mats);
   addEntity(
     "steatite_seal",
     "steatite_seal",
@@ -609,17 +534,7 @@ export function createLevel3SealedSanctum(mats: StylizedMaterialPalette): LevelS
         sealGroup.rotation.y = time * sealSpinSpeed;
         sealGroup.position.y = (isBarrierLowered ? 2.9 : 2.65) + Math.sin(time * 2.4) * 0.16;
 
-        // Counter-rotating halo rings with climax flare
-        const haloSpeed = isBarrierLowered ? 2.2 : 1.2;
-        haloRing1.rotation.z =  time * haloSpeed;
-        haloRing2.rotation.z = -time * (haloSpeed * 0.8);
-        haloRing2.rotation.y =  Math.sin(time * 1.5) * 0.4;
-
         if (isBarrierLowered) {
-          altarLight.intensity = THREE.MathUtils.lerp(altarLight.intensity, 5.2, 0.05);
-          sealCyanLight.intensity = THREE.MathUtils.lerp(sealCyanLight.intensity, 3.8, 0.05);
-          haloMat1.emissiveIntensity = 4.2;
-          haloMat2.emissiveIntensity = 3.6;
           altarSpot.intensity = THREE.MathUtils.lerp(altarSpot.intensity, sealRevealed ? 3.2 : 1.9, 0.035);
           portalRimLight.intensity = THREE.MathUtils.lerp(portalRimLight.intensity, sealRevealed ? 3.4 : 1.8, 0.04);
           altarMetal.emissiveIntensity = THREE.MathUtils.lerp(

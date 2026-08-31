@@ -10,6 +10,7 @@ import {
   type TorchInstance,
   createStylizedRock,
   createGrassTuft,
+  createProceduralCloudSky,
 } from "../environmentHelpers";
 import {
   createFloatingDust,
@@ -18,6 +19,12 @@ import {
   createActivationPulse,
   type ActivationPulse,
 } from "../vfx";
+import {
+  createBinaryWeightsTableModel,
+  createScribeTabletDeskModel,
+  createStorageAmphoraeClusterModel,
+  createSymbolGateMechanismModel,
+} from "../archaeologicalModels";
 
 export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): LevelSceneResult {
   const group = new THREE.Group();
@@ -315,21 +322,7 @@ export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): Leve
 
   // 7. Interactive In-World Entities (Level 2 Investigation)
   // Find 1: Standardized Binary Chert Weights on table
-  const weightsGroup = new THREE.Group();
-  const table = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 1.1), mats.woodPlank);
-  table.position.y = 0.45;
-  table.castShadow = true;
-  table.receiveShadow = true;
-  weightsGroup.add(table);
-
-  // 4 cubic binary chert weights (1:2:4:8 ratio)
-  for (let w = 0; w < 4; w++) {
-    const size = 0.14 * (w + 1);
-    const cube = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mats.wallCap);
-    cube.position.set(-0.6 + w * 0.32, 0.95 + size / 2, 0);
-    cube.castShadow = true;
-    weightsGroup.add(cube);
-  }
+  const weightsModel = createBinaryWeightsTableModel(mats);
   addEntity(
     "crate",
     "crate",
@@ -338,14 +331,12 @@ export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): Leve
     10,
     0,
     0,
-    weightsGroup,
+    weightsModel,
     "Inspect the merchant account tablets in the west corridor.",
   );
 
   // Find 2: Merchant Guild Inscribed Account Tablet
-  const tablet = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.16, 0.65), mats.steatiteSeal);
-  tablet.position.y = 0.08;
-  tablet.castShadow = true;
+  const tabletModel = createScribeTabletDeskModel(mats);
   addEntity(
     "tablet",
     "tablet",
@@ -354,13 +345,12 @@ export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): Leve
     -11,
     0,
     0,
-    tablet,
+    tabletModel,
     "Search the storage amphorae and clay bullae.",
   );
 
   // Find 3: Export Storage Amphorae & Clay Bullae
-  const pottery1 = createPotteryCluster(mats);
-  pottery1.position.set(10, 0, -10);
+  const potteryModel = createStorageAmphoraeClusterModel(mats);
   addEntity(
     "storage_jars",
     "storage_jars",
@@ -369,28 +359,12 @@ export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): Leve
     10,
     0,
     -10,
-    pottery1,
+    potteryModel,
     "Approach the ancient Carved Symbol Gate at the north wall!",
   );
 
   // Find 4: Carved Symbol Gate Mechanism (Environmental Puzzle)
-  const symMechanismGroup = new THREE.Group();
-  const lockBase = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.0, 0.7), mats.goldBrass);
-  lockBase.position.y = 1.5;
-  lockBase.castShadow = true;
-  symMechanismGroup.add(lockBase);
-
-  // 4 Symbol Glyphs in relief
-  for (let s = 0; s < 4; s++) {
-    const glyphSlot = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.24, 0.24, 0.08, 16),
-      mats.steatiteSeal,
-    );
-    glyphSlot.position.set(-0.5 + (s % 2) * 1.0, 1.8 - Math.floor(s / 2) * 0.9, 0.36);
-    glyphSlot.rotation.x = Math.PI / 2;
-    glyphSlot.castShadow = true;
-    symMechanismGroup.add(glyphSlot);
-  }
+  const symMechanismModel = createSymbolGateMechanismModel(mats);
   addEntity(
     "symbol_puzzle_gate",
     "symbol_puzzle_gate",
@@ -399,7 +373,7 @@ export function createLevel2MerchantQuarter(mats: StylizedMaterialPalette): Leve
     0,
     0,
     -30.5,
-    symMechanismGroup,
+    symMechanismModel,
     "Solve the 4-sign sequence to open the stone gate to Level 3!",
   );
 

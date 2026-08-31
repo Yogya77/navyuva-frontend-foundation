@@ -78,13 +78,13 @@ export class ThreeAdventureEngine {
     this.scene = new THREE.Scene();
     this.mats = createStylizedMaterials();
 
-    this.ambientLight = new THREE.AmbientLight(0x6e5038, 0.85);
+    this.ambientLight = new THREE.AmbientLight(0x4a3726, 0.65);
     this.scene.add(this.ambientLight);
 
-    this.hemiLight = new THREE.HemisphereLight(0x7ab6f0, 0xdfb07b, 0.95);
+    this.hemiLight = new THREE.HemisphereLight(0x4b97e6, 0x8a623f, 0.85);
     this.scene.add(this.hemiLight);
 
-    this.sunLight = new THREE.DirectionalLight(0xfff0cc, 2.4);
+    this.sunLight = new THREE.DirectionalLight(0xffeed6, 1.95);
     this.sunLight.position.set(32, 52, 28);
     this.sunLight.castShadow = initialQuality !== "mobile";
 
@@ -139,7 +139,7 @@ export class ThreeAdventureEngine {
       const renderPass = new RenderPass(this.scene, this.cameraController.camera);
       effectComposer.addPass(renderPass);
 
-      const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.52, 0.42, 0.78);
+      const bloomPass = new UnrealBloomPass(new THREE.Vector2(w, h), 0.32, 0.42, 0.82);
       effectComposer.addPass(bloomPass);
 
       const vignetteShader = {
@@ -185,7 +185,7 @@ export class ThreeAdventureEngine {
     this.renderer.shadowMap.type =
       quality === "ultra" ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.18;
+    this.renderer.toneMappingExposure = 1.04;
   }
 
   public loadLevel(levelId: LevelId) {
@@ -600,8 +600,17 @@ export class ThreeAdventureEngine {
     }
 
     if (closest !== this.nearbyEntity) {
+      if (this.nearbyEntity?.mesh) {
+        this.nearbyEntity.mesh.scale.set(1, 1, 1);
+      }
       this.nearbyEntity = closest;
       this.callbacks.onNearbyEntityChange(closest);
+    }
+
+    // Subtle museum-style interaction highlight pulse when in range
+    if (this.nearbyEntity?.mesh && !this.isPaused) {
+      const pulse = 1.0 + Math.sin(Date.now() * 0.005) * 0.025;
+      this.nearbyEntity.mesh.scale.set(pulse, pulse, pulse);
     }
   }
 

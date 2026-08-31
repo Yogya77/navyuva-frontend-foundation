@@ -1145,9 +1145,9 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           className="w-full h-[540px] sm:h-[660px] block cursor-grab active:cursor-grabbing focus:outline-none"
         />
 
-        {/* Clear Mission Objectives HUD Overlay (Collapsible & Persistent) */}
+        {/* Clear Mission Objectives HUD Overlay (Collapsible & Persistent in Upper-Right) */}
         {!isIntroActive && !isFinaleActive && (
-          <div className="absolute top-4 left-4 z-20 max-w-xs sm:max-w-sm w-full">
+          <div className="absolute top-4 right-4 z-20">
             <ObjectiveHUD
               currentLevelId={currentLevelId}
               currentActId={currentAct}
@@ -1260,14 +1260,31 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           </div>
         )}
 
-        {/* In-World Proximity [E] Interaction Prompt */}
+        {/* In-World Proximity [E] Interaction Prompt & Museum Floating Card */}
         {nearbyEntity && !isAnyModalOpen && !isIntroActive && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-20 pointer-events-none z-20 animate-bounce">
-            <div className="flex items-center gap-2 rounded-xl border border-primary bg-black/90 px-4 py-2 text-xs font-bold text-foreground shadow-2xl backdrop-blur-md">
-              <span className="flex h-5 w-5 items-center justify-center rounded-md bg-primary text-black font-mono text-[11px]">
-                E
-              </span>
-              <span className="text-gold font-serif">{nearbyEntity.promptLabel}</span>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-28 pointer-events-none z-20 animate-bounce">
+            <div className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-primary/80 bg-stone-950/95 px-5 py-3 text-xs font-bold text-foreground shadow-[0_0_35px_rgba(0,229,255,0.45)] backdrop-blur-md min-w-[220px]">
+              <div className="flex items-center gap-2 border-b border-border/40 pb-1.5 w-full justify-between">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-primary font-bold">
+                  ARCHAEOLOGICAL ARTIFACT
+                </span>
+                <span className="text-[9px] font-mono text-stone-400">
+                  {nearbyEntity.zone}
+                </span>
+              </div>
+              <div className="flex items-center gap-3 w-full pt-1">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-black font-mono text-sm font-black shadow-md shrink-0">
+                  E
+                </span>
+                <div className="flex flex-col text-left">
+                  <span className="font-serif text-sm font-bold text-foreground leading-tight">
+                    {nearbyEntity.name}
+                  </span>
+                  <span className="text-[10px] text-amber-300 font-sans font-medium">
+                    [E] {nearbyEntity.promptLabel}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         )}

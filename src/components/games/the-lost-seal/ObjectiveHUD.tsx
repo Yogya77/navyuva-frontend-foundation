@@ -93,146 +93,154 @@ export function ObjectiveHUD({
     <aside
       aria-label="Mission Objectives and Progress"
       className={cn(
-        "pointer-events-auto rounded-2xl border border-primary/40 bg-stone-950/90 text-foreground shadow-2xl shadow-black/80 backdrop-blur-md transition-all duration-300",
+        "pointer-events-auto rounded-2xl border border-amber-500/35 bg-stone-950/90 text-foreground shadow-2xl shadow-black/85 backdrop-blur-md transition-all duration-300 w-72 sm:w-80",
         className,
       )}
     >
       {/* Header Bar */}
-      <div className="flex items-center justify-between gap-3 border-b border-border/40 px-3.5 py-2.5">
+      <div className="flex items-center justify-between gap-2 border-b border-border/40 px-3.5 py-2.5 bg-gradient-to-r from-amber-500/10 via-transparent to-transparent rounded-t-2xl">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-primary/50 bg-primary/20 text-primary shadow-inner">
-            <Compass className="h-4 w-4" />
-          </div>
+          <span className="text-amber-400 text-xs">◆</span>
           <div className="min-w-0">
-            <div className="flex items-center gap-1.5">
-              <span className="font-serif text-[11px] font-bold uppercase tracking-wider text-primary">
-                LEVEL {config.levelNumber} — {config.levelTitle}
-              </span>
-            </div>
-            <p className="truncate font-mono text-[9px] text-stone-400">
-              {config.zoneSubtitle}
-            </p>
+            <span className="text-[10px] font-mono font-bold tracking-[0.2em] uppercase text-amber-300">
+              OBJECTIVE
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <Badge
             variant="outline"
             className={cn(
-              "font-mono text-[10px] font-semibold tracking-wider",
+              "font-mono text-[9px] font-semibold tracking-wider px-2 py-0.5",
               isLevelComplete
-                ? "border-emerald-500/50 bg-emerald-950/40 text-emerald-300"
-                : "border-primary/40 bg-primary/10 text-primary",
+                ? "border-emerald-500/50 bg-emerald-950/50 text-emerald-300"
+                : "border-amber-500/40 bg-amber-500/10 text-amber-300",
             )}
           >
-            {completedCount}/{totalCount} DONE
+            {completedCount} / {totalCount} DONE
           </Badge>
 
           <button
             type="button"
             onClick={() => setIsExpanded((prev) => !prev)}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-stone-400 transition-colors hover:bg-stone-800 hover:text-foreground"
-            title={isExpanded ? "Collapse Objectives HUD" : "Expand Objectives HUD"}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-stone-400 hover:text-amber-300 transition-colors"
+            title={isExpanded ? "Collapse Objectives" : "Expand Objectives"}
             aria-expanded={isExpanded}
           >
-            {isExpanded ? (
-              <ChevronUp className="h-4 w-4" />
-            ) : (
-              <ChevronDown className="h-4 w-4" />
-            )}
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
-      {/* Expanded Content */}
+      {/* Main Mission Goal Statement */}
+      <div className="px-3.5 py-2 border-b border-border/20 bg-stone-900/40">
+        <h4 className="font-serif text-xs font-bold text-amber-200 flex items-center gap-1.5">
+          <span>◆</span>
+          <span>Find the Lost Seal</span>
+        </h4>
+        <p className="text-[10px] text-stone-300 leading-snug mt-0.5 font-sans">
+          Explore the ancient city, investigate archaeological clues, and recover the missing seal.
+        </p>
+      </div>
+
+      {/* Expanded Objective Task List */}
       {isExpanded && (
-        <div className="space-y-3 p-3.5 text-xs animate-in fade-in duration-200">
-          {/* Current Directive Banner */}
-          <div className="rounded-xl border border-primary/30 bg-primary/10 p-2.5 text-xs">
-            <div className="flex items-center gap-1.5 font-serif font-bold uppercase tracking-wider text-primary text-[10px]">
-              <Sparkles className="h-3.5 w-3.5 shrink-0" />
+        <div className="p-3.5 space-y-3 text-xs animate-in fade-in duration-200">
+          {/* Level Header Sub-label */}
+          <div className="flex items-center justify-between text-[10px] font-mono text-stone-400 border-b border-border/30 pb-1.5">
+            <span className="font-bold tracking-wider text-amber-400/90 uppercase">
+              LEVEL {config.levelNumber} — {config.levelTitle}
+            </span>
+            <span className="text-[9px] text-stone-400">
+              {completedCount} / {totalCount} OBJECTIVES
+            </span>
+          </div>
+
+          {/* Current Directive Callout */}
+          <div className="rounded-xl border border-amber-500/25 bg-amber-950/20 p-2 text-xs">
+            <div className="flex items-center gap-1 font-serif font-bold uppercase tracking-wider text-amber-300 text-[9px]">
+              <Sparkles className="h-3 w-3 shrink-0" />
               <span>Current Directive</span>
             </div>
-            <p className="mt-1 text-[11px] font-medium leading-snug text-foreground">
+            <p className="mt-0.5 text-[11px] font-medium leading-tight text-foreground font-sans">
               {currentDirective}
             </p>
           </div>
 
-          {/* Sequential Checklist */}
+          {/* Individual Checklist Items */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[10px] font-serif font-semibold uppercase tracking-wider text-stone-400 px-0.5">
-              <span>Archaeological Progress</span>
-              <span className="font-mono text-[9px] text-stone-500">
-                {Math.round((completedCount / (totalCount || 1)) * 100)}%
-              </span>
-            </div>
-
-            <div className="space-y-1">
-              {currentLevelObjectives.map((obj, idx) => {
-                const isCurrentPending =
-                  !obj.completed &&
-                  (idx === 0 || currentLevelObjectives[idx - 1]?.completed);
-
-                return (
-                  <div
-                    key={obj.id}
-                    className={cn(
-                      "flex items-start gap-2 rounded-lg px-2 py-1.5 transition-all text-[11px]",
-                      obj.completed
-                        ? "bg-emerald-950/20 text-stone-300"
-                        : isCurrentPending
-                          ? "border border-primary/40 bg-stone-900/90 text-foreground shadow-sm"
-                          : "text-stone-500 opacity-70",
+            {currentLevelObjectives.map((obj) => {
+              const isDone = obj.completed;
+              return (
+                <div
+                  key={obj.id}
+                  className={cn(
+                    "flex items-start gap-2.5 rounded-lg p-1.5 transition-all duration-300",
+                    isDone
+                      ? "bg-emerald-950/25 border border-emerald-500/20 text-stone-300"
+                      : "bg-stone-900/40 border border-stone-800 text-foreground",
+                  )}
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {isDone ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 animate-in zoom-in" />
+                    ) : (
+                      <Circle className="h-3.5 w-3.5 text-amber-400/70" />
                     )}
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {obj.completed ? (
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
-                      ) : isCurrentPending ? (
-                        <Circle className="h-3.5 w-3.5 text-primary animate-pulse" />
-                      ) : (
-                        <Circle className="h-3.5 w-3.5 text-stone-600" />
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          "leading-tight block",
-                          obj.completed
-                            ? "line-through text-stone-400"
-                            : isCurrentPending
-                              ? "font-semibold text-foreground"
-                              : "text-stone-500",
-                        )}
-                      >
-                        {obj.title}
-                      </span>
-                    </div>
                   </div>
-                );
-              })}
+                  <div className="flex-1 min-w-0">
+                    <p
+                      className={cn(
+                        "text-[11px] font-serif leading-tight font-medium",
+                        isDone && "line-through text-stone-400",
+                      )}
+                    >
+                      {obj.title}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Gate Passage Status */}
+          <div
+            className={cn(
+              "flex items-start gap-2 rounded-xl p-2 text-[10px] border transition-colors",
+              isLevelComplete
+                ? "border-emerald-500/40 bg-emerald-950/30 text-emerald-300"
+                : "border-border/50 bg-stone-900/50 text-stone-400",
+            )}
+          >
+            {isLevelComplete ? (
+              <Unlock className="h-3.5 w-3.5 shrink-0 text-emerald-400 mt-0.5" />
+            ) : (
+              <Lock className="h-3.5 w-3.5 shrink-0 text-amber-400/80 mt-0.5" />
+            )}
+            <div className="min-w-0">
+              <span className="font-bold font-mono uppercase tracking-wider block text-[9px]">
+                {isLevelComplete ? "GATE UNLOCKED" : "GATE PASSAGE CRITERIA"}
+              </span>
+              <p className="leading-tight text-[10px] mt-0.5 text-foreground/90">
+                {isLevelComplete
+                  ? "The evidence has revealed the way forward. Proceed to the next area!"
+                  : config.doorUnlockCondition}
+              </p>
             </div>
           </div>
 
-          {/* Door / Gate Unlock Status */}
-          <div className="rounded-xl border border-border/50 bg-stone-900/70 p-2 text-[10px] flex items-center gap-2">
-            {isLevelComplete ? (
-              <>
-                <Unlock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                <span className="text-emerald-300 font-medium">
-                  Gate Unlocked: Way forward is open!
-                </span>
-              </>
-            ) : (
-              <>
-                <Lock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                <span className="text-stone-300">
-                  <strong className="text-amber-400">Unlock Condition:</strong>{" "}
-                  {config.doorUnlockCondition}
-                </span>
-              </>
-            )}
-          </div>
+          {/* Archaeological Dossier Shortcut Button */}
+          {onOpenClues && (
+            <button
+              type="button"
+              onClick={onOpenClues}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-500/30 bg-stone-900/80 px-3 py-1.5 text-[10px] font-bold font-mono uppercase tracking-wider text-amber-300 hover:bg-amber-500/10 hover:border-amber-400 transition-all cursor-pointer shadow-sm"
+            >
+              <Scroll className="h-3.5 w-3.5" />
+              <span>Review Artifact Dossier</span>
+            </button>
+          )}
         </div>
       )}
     </aside>

@@ -2,6 +2,81 @@ import * as THREE from "three";
 import type { StylizedMaterialPalette } from "./materials";
 import type { BoxCollider3D } from "./types";
 
+export interface SkyInstance {
+  group: THREE.Group;
+  update: (dt: number, time: number) => void;
+}
+
+/**
+ * Creates an atmospheric sky dome with slowly drifting volumetric-style 3D clouds.
+ */
+export function createProceduralCloudSky(mats: StylizedMaterialPalette): SkyInstance {
+  const group = new THREE.Group();
+
+  // 1. Sky Dome background
+  const skyGeo = new THREE.SphereGeometry(150, 32, 24);
+  const skyMesh = new THREE.Mesh(skyGeo, mats.skyDome);
+  skyMesh.position.set(0, 0, 0);
+  group.add(skyMesh);
+
+  // 2. 3D Puffy Cumulus Clouds drifting in the sky
+  const cloudMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.9,
+    metalness: 0.0,
+    transparent: true,
+    opacity: 0.88,
+  });
+
+  const clouds: THREE.Group[] = [];
+  const cloudConfigs = [
+    { x: -60, y: 55, z: -40, scale: 1.4, speed: 0.45 },
+    { x: 30, y: 62, z: -70, scale: 1.8, speed: 0.35 },
+    { x: -40, y: 48, z: 50, scale: 1.2, speed: 0.5 },
+    { x: 70, y: 58, z: 20, scale: 1.5, speed: 0.4 },
+    { x: -10, y: 68, z: -20, scale: 2.0, speed: 0.3 },
+    { x: 50, y: 52, z: 80, scale: 1.3, speed: 0.42 },
+    { x: -80, y: 60, z: 10, scale: 1.6, speed: 0.38 },
+  ];
+
+  for (const cfg of cloudConfigs) {
+    const cloud = new THREE.Group();
+    const puffCount = 7;
+    for (let p = 0; p < puffCount; p++) {
+      const radius = (3.5 + Math.random() * 2.8) * cfg.scale;
+      const puffGeo = new THREE.SphereGeometry(radius, 8, 8);
+      const puff = new THREE.Mesh(puffGeo, cloudMat);
+      puff.position.set(
+        (p - puffCount / 2) * 3.2 * cfg.scale + (Math.random() - 0.5) * 2,
+        (Math.random() - 0.5) * 1.5 * cfg.scale,
+        (Math.random() - 0.5) * 3.0 * cfg.scale,
+      );
+      puff.scale.set(1.2, 0.75, 1.0);
+      cloud.add(puff);
+    }
+    cloud.position.set(cfg.x, cfg.y, cfg.z);
+    group.add(cloud);
+    clouds.push(cloud);
+  }
+
+  return {
+    group,
+    update: (dt: number, time: number) => {
+      // Very slow horizontal cloud drift
+      for (let i = 0; i < clouds.length; i++) {
+        const cloud = clouds[i]!;
+        const speed = cloudConfigs[i]?.speed ?? 0.4;
+        cloud.position.x += dt * speed;
+        // Subtle vertical breathing
+        cloud.position.y += Math.sin(time * 0.5 + i) * dt * 0.08;
+        if (cloud.position.x > 120) {
+          cloud.position.x = -120;
+        }
+      }
+    },
+  };
+}
+
 /**
  * Creates an atmospheric sky dome enclosing the entire world.
  */

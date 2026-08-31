@@ -125,38 +125,96 @@ function createTerrainTexture(): THREE.CanvasTexture {
 }
 
 /**
- * Creates a sky dome texture with azure zenith, warm golden horizon, and soft cloud bands.
+ * Creates a rich cinematic sky dome texture with deep azure zenith,
+ * atmospheric cerulean blue, soft sun glow disk, and volumetric-style cumulus clouds.
  */
 export function createSkyDomeTexture(): THREE.CanvasTexture {
   const canvas = document.createElement("canvas");
-  canvas.width = 1024;
-  canvas.height = 512;
+  canvas.width = 2048;
+  canvas.height = 1024;
   const ctx = canvas.getContext("2d")!;
 
-  // Atmospheric gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, 512);
-  grad.addColorStop(0, "#2c7bd6"); // Deep azure zenith
-  grad.addColorStop(0.4, "#68aae8"); // Atmospheric blue
-  grad.addColorStop(0.75, "#f6cca0"); // Warm golden amber horizon
-  grad.addColorStop(1.0, "#e4af76"); // Alluvial desert haze
+  // 1. Rich Atmospheric Daytime Gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+  grad.addColorStop(0, "#195bb5"); // Deep rich cerulean zenith
+  grad.addColorStop(0.35, "#3d8fe0"); // Vibrant sky blue
+  grad.addColorStop(0.65, "#78b8f2"); // Soft atmospheric light blue
+  grad.addColorStop(0.85, "#f7d3a8"); // Warm golden amber horizon band
+  grad.addColorStop(1.0, "#e8be8b"); // Alluvial desert haze
 
   ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 1024, 512);
+  ctx.fillRect(0, 0, 2048, 1024);
 
-  // Soft cumulus cloud wisps
-  ctx.fillStyle = "rgba(255, 255, 255, 0.38)";
-  for (let i = 0; i < 40; i++) {
-    const cx = Math.random() * 1024;
-    const cy = 100 + Math.random() * 200;
-    const rad = 45 + Math.random() * 65;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-    ctx.arc(cx + 40, cy - 12, rad * 0.75, 0, Math.PI * 2);
-    ctx.arc(cx - 40, cy + 6, rad * 0.82, 0, Math.PI * 2);
-    ctx.fill();
+  // 2. Visible Warm Sun Corona Glow in the Sky
+  const sunX = 620;
+  const sunY = 320;
+  const sunGlow = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 340);
+  sunGlow.addColorStop(0, "rgba(255, 252, 235, 0.95)");
+  sunGlow.addColorStop(0.15, "rgba(255, 235, 180, 0.65)");
+  sunGlow.addColorStop(0.45, "rgba(255, 210, 140, 0.25)");
+  sunGlow.addColorStop(1.0, "rgba(255, 200, 120, 0)");
+
+  ctx.fillStyle = sunGlow;
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 340, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Sharp sun disk core
+  ctx.fillStyle = "rgba(255, 255, 250, 0.98)";
+  ctx.beginPath();
+  ctx.arc(sunX, sunY, 28, 0, Math.PI * 2);
+  ctx.fill();
+
+  // 3. Volumetric-looking Soft Cumulus Cloud Clusters
+  // Multi-pass puff drawing with shaded undersides and sun-highlighted tops
+  const cloudClusters = [
+    { cx: 350, cy: 380, count: 24, scale: 95 },
+    { cx: 850, cy: 440, count: 32, scale: 110 },
+    { cx: 1350, cy: 360, count: 28, scale: 100 },
+    { cx: 1800, cy: 420, count: 30, scale: 105 },
+    { cx: 100, cy: 480, count: 20, scale: 85 },
+    { cx: 1100, cy: 520, count: 22, scale: 90 },
+    { cx: 1600, cy: 500, count: 26, scale: 95 },
+  ];
+
+  for (const cluster of cloudClusters) {
+    // Under-layer shadow
+    ctx.fillStyle = "rgba(165, 190, 215, 0.28)";
+    for (let p = 0; p < cluster.count; p++) {
+      const px = cluster.cx + (Math.random() - 0.5) * cluster.scale * 3.2;
+      const py = cluster.cy + 18 + Math.random() * cluster.scale * 0.5;
+      const r = cluster.scale * (0.45 + Math.random() * 0.45);
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Mid-layer cloud body (soft white)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.62)";
+    for (let p = 0; p < cluster.count; p++) {
+      const px = cluster.cx + (Math.random() - 0.5) * cluster.scale * 2.8;
+      const py = cluster.cy + (Math.random() - 0.5) * cluster.scale * 0.6;
+      const r = cluster.scale * (0.4 + Math.random() * 0.45);
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Top sun-highlighted crests
+    ctx.fillStyle = "rgba(255, 253, 245, 0.85)";
+    for (let p = 0; p < Math.floor(cluster.count * 0.6); p++) {
+      const px = cluster.cx + (Math.random() - 0.5) * cluster.scale * 2.2;
+      const py = cluster.cy - 16 + (Math.random() - 0.5) * cluster.scale * 0.4;
+      const r = cluster.scale * (0.35 + Math.random() * 0.35);
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
   return texture;
 }
 

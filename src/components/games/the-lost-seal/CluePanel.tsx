@@ -9,6 +9,8 @@ import {
   Compass,
   Trophy,
   Sparkles,
+  Eye,
+  ZoomIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,16 @@ interface CluePanelProps {
 
 type JournalTab = "objectives" | "clues" | "artifacts" | "documents" | "stats";
 
+interface InspectPreviewData {
+  title: string;
+  category: string;
+  image?: string | undefined;
+  imageCaption?: string | undefined;
+  icon: string;
+  description: string;
+  historicalContext?: string | undefined;
+}
+
 const ACT_TITLES: Record<string, { actNumber: string; title: string }> = {
   "act-1-discovery": { actNumber: "CHAPTER 1", title: "THE LOST CITY — EXCAVATION CAMP" },
   "act-2-lost-city": { actNumber: "CHAPTER 1", title: "THE LOST CITY — CITADEL & GREAT BATH" },
@@ -53,17 +65,22 @@ export function CluePanel({
   maxScore = 800,
 }: CluePanelProps) {
   const [activeTab, setActiveTab] = useState<JournalTab>("objectives");
+  const [inspectPreview, setInspectPreview] = useState<InspectPreviewData | null>(null);
 
   // ESC key support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
+      if (e.key === "Escape") {
+        if (inspectPreview) {
+          setInspectPreview(null);
+        } else if (isOpen) {
+          onClose();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, inspectPreview]);
 
   if (!isOpen) return null;
 
@@ -76,7 +93,7 @@ export function CluePanel({
       aria-labelledby="clue-panel-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-3 sm:p-6 backdrop-blur-md animate-in fade-in duration-200"
     >
-      <div className="relative flex h-[90vh] max-h-[720px] w-full max-w-4xl flex-col rounded-3xl border border-primary/50 bg-stone-950 p-5 sm:p-7 shadow-2xl shadow-black overflow-hidden">
+      <div className="relative flex h-[90vh] max-h-[740px] w-full max-w-4xl flex-col rounded-3xl border border-primary/50 bg-stone-950 p-5 sm:p-7 shadow-2xl shadow-black overflow-hidden">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-border/40 pb-4">
           <div className="flex items-center gap-3">
@@ -251,7 +268,7 @@ export function CluePanel({
             </div>
           )}
 
-          {/* TAB 2: CLUES & EVIDENCE (WITH IMAGES) */}
+          {/* TAB 2: CLUES & EVIDENCE (WITH LARGE CRISP THUMBNAILS & INSPECT ON CLICK) */}
           {activeTab === "clues" && (
             <div className="space-y-3">
               {clues.length === 0 ? (
@@ -265,16 +282,29 @@ export function CluePanel({
                 clues.map((clue) => (
                   <article
                     key={clue.id}
-                    className="flex flex-col sm:flex-row items-start gap-4 rounded-2xl border border-border/60 bg-stone-900/60 p-4 transition-all hover:border-primary/40"
+                    onClick={() =>
+                      setInspectPreview({
+                        title: clue.title,
+                        category: clue.category,
+                        image: clue.image,
+                        imageCaption: clue.imageCaption,
+                        icon: clue.icon,
+                        description: clue.fullNote,
+                      })
+                    }
+                    className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 rounded-2xl border border-border/60 bg-stone-900/60 p-4 transition-all hover:border-primary/60 hover:bg-stone-900 cursor-pointer shadow-md"
                   >
                     {clue.image && (
-                      <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-black/60 p-1 flex items-center justify-center">
+                      <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-primary/40 bg-black/80 p-1.5 flex items-center justify-center group-hover:border-primary transition-colors">
                         <img
                           src={clue.image}
                           alt={clue.title}
-                          className="h-full w-full object-contain rounded-lg"
+                          className="h-full w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                          <ZoomIn className="h-5 w-5 text-primary" />
+                        </div>
                       </div>
                     )}
 
@@ -283,7 +313,7 @@ export function CluePanel({
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-lg">{clue.icon}</span>
-                            <h3 className="font-serif text-sm sm:text-base font-bold text-foreground">
+                            <h3 className="font-serif text-sm sm:text-base font-bold text-foreground group-hover:text-primary transition-colors">
                               {clue.title}
                             </h3>
                           </div>
@@ -294,13 +324,16 @@ export function CluePanel({
                             >
                               {clue.category}
                             </Badge>
-                            <span className="text-[11px] text-stone-400">
+                            <span className="text-[11px] text-stone-400 font-mono">
                               Chapter {clue.discoveredInStage} Finding
                             </span>
                           </div>
                         </div>
 
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                        <div className="flex items-center gap-1 text-xs text-primary opacity-80 group-hover:opacity-100">
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="text-[10px] hidden sm:inline font-mono">Inspect</span>
+                        </div>
                       </div>
 
                       <p className="mt-2.5 text-xs leading-relaxed text-stone-200 font-medium">
@@ -313,7 +346,7 @@ export function CluePanel({
             </div>
           )}
 
-          {/* TAB 3: ARTIFACTS (WITH IMAGES) */}
+          {/* TAB 3: ARTIFACTS (WITH LARGE CRISP THUMBNAILS & INSPECT ON CLICK) */}
           {activeTab === "artifacts" && (
             <div className="space-y-3">
               {artifacts.length === 0 ? (
@@ -328,23 +361,37 @@ export function CluePanel({
                   {artifacts.map((art) => (
                     <div
                       key={art.id}
-                      className="flex flex-col justify-between rounded-2xl border border-border/60 bg-stone-900/60 p-4 transition-all hover:border-primary/40"
+                      onClick={() =>
+                        setInspectPreview({
+                          title: art.name,
+                          category: `${art.category} • ${art.period}`,
+                          image: art.image,
+                          imageCaption: `${art.provenance}`,
+                          icon: art.icon,
+                          description: art.description,
+                          historicalContext: art.historicalSignificance,
+                        })
+                      }
+                      className="group flex flex-col justify-between rounded-2xl border border-border/60 bg-stone-900/60 p-4 transition-all hover:border-primary/60 hover:bg-stone-900 cursor-pointer shadow-md"
                     >
                       <div>
                         {art.image && (
-                          <div className="mb-3 h-28 w-full overflow-hidden rounded-xl border border-primary/30 bg-black/60 p-1 flex items-center justify-center">
+                          <div className="relative mb-3 h-36 w-full overflow-hidden rounded-xl border border-primary/40 bg-black/80 p-2 flex items-center justify-center group-hover:border-primary transition-colors">
                             <img
                               src={art.image}
                               alt={art.name}
-                              className="h-full w-full object-contain rounded-lg"
+                              className="h-full w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                               loading="lazy"
                             />
+                            <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                              <ZoomIn className="h-6 w-6 text-primary" />
+                            </div>
                           </div>
                         )}
                         <div className="flex items-center gap-2.5 mb-1.5">
                           <span className="text-xl">{art.icon}</span>
                           <div>
-                            <h3 className="font-serif text-sm font-bold text-foreground">
+                            <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                               {art.name}
                             </h3>
                             <div className="flex items-center gap-1.5 text-[10px] text-stone-400">
@@ -368,7 +415,7 @@ export function CluePanel({
             </div>
           )}
 
-          {/* TAB 4: DOCUMENTS (WITH IMAGES) */}
+          {/* TAB 4: DOCUMENTS (WITH LARGE CRISP THUMBNAILS & INSPECT ON CLICK) */}
           {activeTab === "documents" && (
             <div className="space-y-3">
               {documents.length === 0 ? (
@@ -382,16 +429,30 @@ export function CluePanel({
                 documents.map((doc) => (
                   <article
                     key={doc.id}
-                    className="flex flex-col sm:flex-row items-start gap-4 rounded-2xl border border-border/60 bg-stone-900/60 p-4"
+                    onClick={() =>
+                      setInspectPreview({
+                        title: doc.title,
+                        category: doc.docType,
+                        image: doc.image,
+                        imageCaption: doc.transcription,
+                        icon: doc.icon,
+                        description: `"${doc.excerpt}"`,
+                        historicalContext: doc.historicalContext,
+                      })
+                    }
+                    className="group flex flex-col sm:flex-row items-start gap-4 rounded-2xl border border-border/60 bg-stone-900/60 p-4 transition-all hover:border-primary/60 hover:bg-stone-900 cursor-pointer shadow-md"
                   >
                     {doc.image && (
-                      <div className="h-20 w-20 sm:h-24 sm:w-24 shrink-0 overflow-hidden rounded-xl border border-primary/30 bg-black/60 p-1 flex items-center justify-center">
+                      <div className="relative h-24 w-24 sm:h-28 sm:w-28 shrink-0 overflow-hidden rounded-xl border border-primary/40 bg-black/80 p-1.5 flex items-center justify-center group-hover:border-primary transition-colors">
                         <img
                           src={doc.image}
                           alt={doc.title}
-                          className="h-full w-full object-contain rounded-lg"
+                          className="h-full w-full object-contain rounded-lg transition-transform duration-300 group-hover:scale-105"
                           loading="lazy"
                         />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-xl">
+                          <ZoomIn className="h-5 w-5 text-primary" />
+                        </div>
                       </div>
                     )}
 
@@ -400,7 +461,7 @@ export function CluePanel({
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{doc.icon}</span>
                           <div>
-                            <h3 className="font-serif text-sm font-bold text-foreground">
+                            <h3 className="font-serif text-sm font-bold text-foreground group-hover:text-primary transition-colors">
                               {doc.title}
                             </h3>
                             <span className="text-[10px] text-primary uppercase tracking-wider font-semibold">
@@ -459,6 +520,71 @@ export function CluePanel({
             </div>
           )}
         </div>
+
+        {/* Full Image / Inspection Preview Overlay inside Dossier */}
+        {inspectPreview && (
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/90 p-4 backdrop-blur-md animate-in fade-in duration-150">
+            <div className="relative max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-primary/50 bg-stone-950 p-6 shadow-2xl">
+              <div className="flex items-start justify-between border-b border-border/40 pb-3">
+                <div>
+                  <Badge variant="outline" className="border-primary/40 text-[10px] text-primary">
+                    {inspectPreview.category}
+                  </Badge>
+                  <h3 className="font-serif text-lg font-bold text-foreground mt-1">
+                    {inspectPreview.title}
+                  </h3>
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setInspectPreview(null)}
+                  className="text-stone-400 hover:text-foreground"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+
+              {inspectPreview.image && (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-primary/40 bg-black/80 p-3">
+                  <div className="flex items-center justify-center max-h-[260px] min-h-[180px]">
+                    <img
+                      src={inspectPreview.image}
+                      alt={inspectPreview.title}
+                      className="max-h-[240px] w-auto max-w-full object-contain rounded-lg"
+                    />
+                  </div>
+                  {inspectPreview.imageCaption && (
+                    <div className="mt-2 text-center font-serif text-[11px] text-stone-300 italic">
+                      {inspectPreview.imageCaption}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2 text-xs leading-relaxed text-stone-200">
+                <p>{inspectPreview.description}</p>
+                {inspectPreview.historicalContext && (
+                  <div className="mt-2 rounded-xl border border-border/40 bg-stone-900/60 p-3 text-stone-300">
+                    <span className="font-serif font-bold text-primary text-[11px] block uppercase">
+                      Historical Significance:
+                    </span>
+                    <p className="mt-1">{inspectPreview.historicalContext}</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-5 flex justify-end border-t border-border/40 pt-3">
+                <Button
+                  onClick={() => setInspectPreview(null)}
+                  size="sm"
+                  className="bg-primary text-black font-bold text-xs"
+                >
+                  Back to Dossier
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="mt-4 flex items-center justify-between border-t border-border/40 pt-3">
