@@ -23,6 +23,7 @@ import { WaterFlowPuzzleModal } from "../modals/WaterFlowPuzzleModal";
 import { MerchantAccountingModal } from "../modals/MerchantAccountingModal";
 import { CluePanel } from "../CluePanel";
 import { LostSealCompletion } from "../LostSealCompletion";
+import { ObjectiveHUD } from "../ObjectiveHUD";
 import type { LevelId, InteractiveEntity3D, StoryActId, StoryActInfo } from "./types";
 import type {
   ArchaeologicalClue,
@@ -151,8 +152,8 @@ const INITIAL_OBJECTIVES: ExpeditionObjective[] = [
   {
     id: "obj-5-north-gate",
     actId: "act-2-lost-city",
-    title: "Enter the Merchant Quarter",
-    description: "Inspect the North Gate clay bulla tag and pass through the monumental archway into Chapter 2.",
+    title: "Inspect North Gate Clearance Bulla",
+    description: "Inspect the North Gate clay bulla tag to authorize transit clearance and unlock the Merchant Quarter archway.",
     completed: false,
     order: 5,
   },
@@ -227,10 +228,10 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
   const [artifacts, setArtifacts] = useState<JournalArtifact[]>([]);
   const [documents, setDocuments] = useState<JournalDocument[]>([]);
 
-  const [discoveryToast, setDiscoveryToast] = useState<{ title: string; icon: string } | null>(null);
+  const [discoveryToast, setDiscoveryToast] = useState<{ title: string; icon: string; subtitle?: string } | null>(null);
   const [isMuted, setIsMuted] = useState(adventureAudio.getMuted());
   const [nearbyEntity, setNearbyEntity] = useState<InteractiveEntity3D | null>(null);
-  const [qualityTier, setQualityTier] = useState<QualityTier>("ultra"); // Default Ultra for RTX 5050 class desktop
+  const [qualityTier, setQualityTier] = useState<QualityTier>("ultra");
 
   // Touch controls state
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -263,6 +264,9 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
   const altarBarrierUnlocked = objectives.some(
     (objective) => objective.id === "obj-10-keystone" && objective.completed,
   );
+  const northGateUnlocked = objectives.some(
+    (objective) => objective.id === "obj-5-north-gate" && objective.completed,
+  );
 
   // Detect Touch screen
   useEffect(() => {
@@ -272,12 +276,21 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
   }, []);
 
   const completeObjective = useCallback((objId: string) => {
-    setObjectives((prev) =>
-      prev.map((o) => (o.id === objId ? { ...o, completed: true } : o)),
-    );
+    setObjectives((prev) => {
+      const target = prev.find((o) => o.id === objId);
+      if (target && !target.completed) {
+        setDiscoveryToast({
+          title: `OBJECTIVE COMPLETE: ✓ ${target.title}`,
+          icon: "✓",
+          subtitle: "Expedition Dossier updated",
+        });
+        setTimeout(() => setDiscoveryToast(null), 3600);
+      }
+      return prev.map((o) => (o.id === objId ? { ...o, completed: true } : o));
+    });
   }, []);
 
-  // Stable callback refs to completely isolate ThreeAdventureEngine from React state rerenders
+  // Stable callback refs to isolate ThreeAdventureEngine from React state rerenders
   const callbacksRef = useRef({
     onNearbyEntityChange: (entity: InteractiveEntity3D | null) => {},
     onInteract: (entity: InteractiveEntity3D) => {},
@@ -288,7 +301,11 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     setClues((prev) => {
       if (prev.some((c) => c.id === newClue.id)) return prev;
       adventureAudio.playDiscovery();
-      setDiscoveryToast({ title: newClue.title, icon: newClue.icon });
+      setDiscoveryToast({
+        title: `EVIDENCE LOGGED: ${newClue.title}`,
+        icon: newClue.icon,
+        subtitle: "+50 pts added to dossier",
+      });
       setTimeout(() => setDiscoveryToast(null), 3800);
       return [...prev, newClue];
     });
@@ -321,8 +338,17 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           },
         );
       } else if (entity.type === "passage_gate") {
+        // Enforce progression: require clearance inspection
+        if (!northGateUnlocked) {
+          setDiscoveryToast({
+            title: "North Gate Sealed: Inspect Magistrate Bulla Tag to authorize transit clearance first.",
+            icon: "🔒",
+          });
+          setTimeout(() => setDiscoveryToast(null), 3500);
+          return;
+        }
+
         // Transition Level 1 to Level 2
-        completeObjective("obj-5-north-gate");
         engineRef.current?.loadLevel("level-2-merchant-quarter");
         setCurrentLevelId("level-2-merchant-quarter");
         setCurrentAct("act-3-merchant-quarter");
@@ -359,7 +385,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           setCurrentAct("act-2-lost-city");
         }
 
-        // Grant historical clues, artifacts, and documents
+        // Grant historical clues, artifacts, and documents with authentic images
         if (currentLevelId === "level-3-sealed-sanctum" && entity.id === "tablet") {
           completeObjective("obj-9-sanctuary-friezes");
           setSanctumEvidence((prev) => ({ ...prev, glyphs: true }));
@@ -368,6 +394,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Sanctuary Glyph Formula",
             category: "Iconography",
             icon: "🔣",
+            image: "/images/artifacts/indus-seal-seven-figures-pipal.jpg",
+            imageCaption: "East Sanctuary Inscription Frieze with Ritual Pageantry",
             shortSnippet: "The inscribed sequence identifies the Zebu as the altar's authority mark.",
             fullNote: "The east sanctuary inscription confirms the keystone responds only after the paired Zebu authority relief is studied.",
             discoveredInStage: 3,
@@ -380,6 +408,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Zebu Authority Totem",
             category: "Iconography",
             icon: "🐂",
+            image: "/images/artifacts/indus-seal-zebu-bull.jpg",
+            imageCaption: "West Wall Zebu Bull Sacred Relief (Bos Indicus)",
             shortSnippet: "The paired relief completes the keystone activation formula.",
             fullNote: "The west wall's Zebu relief supplies the authority mark needed to release the altar's bronze lattice.",
             discoveredInStage: 3,
@@ -395,6 +425,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 title: "DK-G Archaeological Field Journal",
                 docType: "Field Log",
                 icon: "📖",
+                image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+                imageCaption: "Excavation Stratigraphic Field Log (Trench DK-G)",
                 excerpt: "Trench DK-G Stratum IV: Steatite Seal #DK-770 absent from votive altar niche. Evidence of deliberate subterranean concealment prior to city abandonment.",
                 transcription: "Field notes by lead excavator establishing Mature Harappan occupation layers (2600–1900 BCE).",
                 historicalContext: "Archaeological excavations at Mohenjo-daro uncovered evidence that elite administrative seals were carefully curated and hidden during periods of environmental crisis.",
@@ -407,6 +439,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Missing Seal Incident (Trench DK-G)",
             category: "Stratigraphy",
             icon: "📖",
+            image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+            imageCaption: "Field Logbook Entry: Stratigraphic Anomaly",
             shortSnippet: "Field notes confirm the master seal was deliberately hidden in an undisturbed subterranean cache.",
             fullNote: "Trench DK-G stratigraphy proves the merchant cache was sealed under intact floor flagstones prior to abandonment.",
             discoveredInStage: 1,
@@ -418,6 +452,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Stratigraphic Context: Mature Harappan",
             category: "Stratigraphy",
             icon: "🏔️",
+            image: "/artifacts/pottery.jpg",
+            imageCaption: "Undisturbed Mature Harappan Stratigraphic Section",
             shortSnippet: "Artifacts lie in the undisturbed Mature Harappan silt layer.",
             fullNote:
               "Trench DK-G stratigraphy confirms undisturbed Mature Harappan habitation layers (2600–1900 BCE).",
@@ -429,6 +465,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Ceramic Seal Impressions",
             category: "Trade",
             icon: "🏺",
+            image: "/artifacts/pottery.jpg",
+            imageCaption: "Harappan Red Ware Storage Amphora Fragment",
             shortSnippet: "Pottery storage jars were secured with stamped clay tags.",
             fullNote:
               "Harappan storage jars were plugged and sealed with square steatite stamp impressions.",
@@ -436,6 +474,13 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           });
         } else if (entity.id === "seal_impression" || entity.type === "seal_impression") {
           completeObjective("obj-5-north-gate");
+          setDiscoveryToast({
+            title: "GATE UNLOCKED: The evidence has revealed the way forward.",
+            icon: "🔓",
+            subtitle: "North Gate clearance authorized",
+          });
+          setTimeout(() => setDiscoveryToast(null), 4000);
+
           setDocuments((prev) => {
             if (prev.some((d) => d.id === "doc-magistrate-bulla")) return prev;
             return [
@@ -445,6 +490,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 title: "Gate Clearance Magistrate Bulla",
                 docType: "Bulla Tag",
                 icon: "🏷️",
+                image: "/images/artifacts/indus-seal-unicorn-bovine.jpg",
+                imageCaption: "Chief Magistrate Bulla Tag with Sacred Standard Seal Impression",
                 excerpt: "North Gate Clearance: Consignment verified by Chief Magistrate. Free transit into Merchant Warehouse Quarter permitted.",
                 transcription: "Clay sealing tag with reverse rope fiber imprint.",
                 historicalContext: "Bullae tags were wrapped around parcel cords and stamped while wet to guarantee authenticity across trade networks.",
@@ -457,6 +504,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "North Gate Clearance Bulla",
             category: "Trade",
             icon: "🏷️",
+            image: "/images/artifacts/indus-seal-unicorn-bovine.jpg",
+            imageCaption: "Gate Clearance Bulla with Intaglio Impression",
             shortSnippet: "Clay bulla confirms transit clearance into the Merchant Quarter.",
             fullNote: "The clay tag verifies that merchant consignments carrying the chief magistrate's seal were granted clearance into the northern warehouse quarter.",
             discoveredInStage: 1,
@@ -472,6 +521,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 title: "Merchant Guild Inscribed Account Tablet",
                 docType: "Epigraphic Inscription",
                 icon: "📜",
+                image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+                imageCaption: "Epigraphic Inscribed Tablet with Maritime Tally Marks",
                 excerpt: "Maritime Guild Tally: Lapis lazuli beads, carnelian ornaments, copper ingots — Stamped under Zebu emblem authority.",
                 transcription: "Indus pictographic signs with numerical tally marks.",
                 historicalContext: "Indus merchants maintained detailed administrative tablets recording maritime trade between Mohenjo-daro, Lothal, and Dilmun.",
@@ -484,6 +535,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Indus Script Directionality",
             category: "Epigraphy",
             icon: "📜",
+            image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+            imageCaption: "Indus Epigraphic Inscription Directionality",
             shortSnippet: "Indus script reads Right-to-Left starting with sacred emblems.",
             fullNote:
               "Seal inscriptions read right-to-left, beginning with animal totems and ending with terminal signs.",
@@ -500,6 +553,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 name: "Standardized Binary Chert Cubes",
                 category: "Tool",
                 icon: "⚖️",
+                image: "/artifacts/blade.jpg",
+                imageCaption: "Polished Cubic Chert Weights (Rohri Flint)",
                 period: "Mature Harappan (2600–1900 BCE)",
                 provenance: "Merchant Bazaar Metrology Counter",
                 description: "Four finely polished cubical chert weights exhibiting standardized binary progression (1:2:4:8).",
@@ -513,6 +568,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             title: "Standardized Binary Chert Weights",
             category: "Trade",
             icon: "⚖️",
+            image: "/artifacts/blade.jpg",
+            imageCaption: "Standardized Binary Chert Balance Weights",
             shortSnippet:
               "Standard binary weights (1, 2, 4, 8, 16) were used across the Indus trade network.",
             fullNote:
@@ -522,7 +579,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
         }
       }
     },
-    [handleClueFound, currentAct, currentLevelId, completeObjective, altarBarrierUnlocked, isFinaleActive, isSealRevealed, sanctumEvidenceComplete],
+    [handleClueFound, currentAct, currentLevelId, completeObjective, altarBarrierUnlocked, northGateUnlocked, isFinaleActive, isSealRevealed, sanctumEvidenceComplete],
   );
 
   // Keep mutable callback ref up to date on every render
@@ -535,7 +592,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     },
   };
 
-  // Initialize 3D Engine & Trigger Cinematic Intro (Runs EXACTLY ONCE on start)
+  // Initialize 3D Engine & Trigger Cinematic Intro
   useEffect(() => {
     if (!hasStarted || !canvasRef.current) return;
 
@@ -570,7 +627,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
       engine.destroy();
       engineRef.current = null;
     };
-  }, [hasStarted]); // ONLY depends on hasStarted!
+  }, [hasStarted]);
 
   // Pause engine when modal is open
   useEffect(() => {
@@ -601,6 +658,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           name: "Carved Steatite Key Fragment",
           category: "Steatite",
           icon: "🗝️",
+          image: "/artifacts/bead.jpg",
+          imageCaption: "Carved Soapstone Alignment Key Fragment",
           period: "Mature Harappan (2600–1900 BCE)",
           provenance: "Great Bath Hydraulic Sump Basin",
           description: "A finely incised soapstone key token carved with geometric alignment indices.",
@@ -614,6 +673,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
       title: "Great Bath Hydraulic Engineering",
       category: "Stratigraphy",
       icon: "🌊",
+      image: "/artifacts/pottery.jpg",
+      imageCaption: "Sub-Floor Gypsum Drainage Conduit",
       shortSnippet: "Sub-floor gypsum conduits allowed rapid draining and refilling of sacred water.",
       fullNote:
         "Operating the desilting and drainage conduits revealed an undisturbed votive compartment containing a carved steatite key fragment.",
@@ -638,6 +699,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           title: "Merchant House 7 Trade Ledger",
           docType: "Trade Ledger",
           icon: "📜",
+          image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+          imageCaption: "Merchant House 7 Trade Ledger Tablet",
           excerpt:
             "House 7 — Consignment of Badakhshan Lapis Lazuli & 16-Unit Chert Standard — Stamped by Grand Magistrate Zebu Bull Seal.",
           transcription:
@@ -653,6 +716,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
       title: "Merchant House 7 Consignment Ledger",
       category: "Trade",
       icon: "⚖️",
+      image: "/images/artifacts/harappa-miniature-script-tablets.jpg",
+      imageCaption: "Merchant Guild Ledger Archive",
       shortSnippet: "Consignment records connect the Lost Seal to Merchant House 7 in the market quarter.",
       fullNote:
         "Deciphering the scribe ledger proves the sovereign Steatite Stamp Seal was utilized by Merchant House 7 to verify royal lapis lazuli shipments.",
@@ -669,11 +734,20 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     setScore((prev) => prev + scoreEarned);
     completeObjective("obj-8-symbol-gate");
     engineRef.current?.openGate("symbol_puzzle_gate");
+    setDiscoveryToast({
+      title: "GATE UNLOCKED: The Carved Symbol Gate slides open!",
+      icon: "🔓",
+      subtitle: "Passage to Sealed Sanctum revealed",
+    });
+    setTimeout(() => setDiscoveryToast(null), 4000);
+
     handleClueFound({
       id: "clue-symbol-frieze",
       title: "Deciphered Administrative Formula",
       category: "Epigraphy",
       icon: "🔣",
+      image: "/images/artifacts/harappan-molded-tablet-plaque.jpg",
+      imageCaption: "Carved Indus Symbol Epigraphic Sequence",
       shortSnippet: "Manger → Zebu Bull → Fish Sign → Terminal Bow.",
       fullNote: "The solved epigraphic formula unlocked the gateway into the Sealed Sanctum.",
       discoveredInStage: 2,
@@ -695,6 +769,13 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
     completeObjective("obj-9-sanctuary-friezes");
     completeObjective("obj-10-keystone");
     engineRef.current?.disengageAltarBarrier();
+    setDiscoveryToast({
+      title: "GATE UNLOCKED: The Altar Barrier has disengaged!",
+      icon: "🔓",
+      subtitle: "Climb the altar to approach the vortex",
+    });
+    setTimeout(() => setDiscoveryToast(null), 4000);
+
     setCurrentObjective(
       "The Altar Barrier is disengaged! Climb the altar and enter the awakened Sanctum Vortex.",
     );
@@ -703,6 +784,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
       title: "Sacred Altar Keystone Aligned",
       category: "Iconography",
       icon: "🗝️",
+      image: "/images/artifacts/indus-confronting-bulls-seal.jpg",
+      imageCaption: "Aligned Altar Keystone Mechanism",
       shortSnippet: "The inner sanctum barrier has retracted.",
       fullNote:
         "Aligning the keystone disengaged the sacred altar barrier, granting access to the Steatite Seal.",
@@ -725,6 +808,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           name: "The Master Steatite Stamp Seal (DK-770)",
           category: "Steatite",
           icon: "👑",
+          image: "/images/artifacts/indus-seal-zebu-bull.jpg",
+          imageCaption: "The Master Steatite Stamp Seal of Mohenjo-daro (DK-770)",
           period: "Mature Harappan (2600–1900 BCE)",
           provenance: "Mohenjo-daro Sealed Sanctum Altar",
           description: "Vitrified white steatite stamp seal featuring a majestic humped Zebu bull and 5-sign Indus inscription.",
@@ -777,38 +862,28 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
   // ── CINEMATIC MAIN MENU ────────────────────────────────────────────────────
   if (!hasStarted) {
     return (
-      <div className="relative min-h-[600px] w-full overflow-hidden rounded-2xl flex flex-col items-center justify-center"
-        style={{ background: "linear-gradient(160deg, #0a0614 0%, #0e1a2a 45%, #160a04 100%)" }}>
-
+      <div
+        className="relative min-h-[600px] w-full overflow-hidden rounded-2xl flex flex-col items-center justify-center"
+        style={{ background: "linear-gradient(160deg, #0a0614 0%, #0e1a2a 45%, #160a04 100%)" }}
+      >
         {/* Decorative ambient glow blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full opacity-10"
-            style={{ background: "radial-gradient(circle, #00cccc 0%, transparent 70%)", filter: "blur(48px)" }} />
-          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8"
-            style={{ background: "radial-gradient(circle, #ff8833 0%, transparent 70%)", filter: "blur(60px)" }} />
-          <div className="absolute top-10 right-1/3 w-40 h-40 rounded-full opacity-6"
-            style={{ background: "radial-gradient(circle, #7744ff 0%, transparent 70%)", filter: "blur(40px)" }} />
-        </div>
-
-        {/* Decorative floating particles (CSS only) */}
-        <div className="pointer-events-none absolute inset-0">
-          {[...Array(18)].map((_, i) => (
-            <div key={i}
-              className="absolute w-1 h-1 rounded-full opacity-30 animate-pulse"
-              style={{
-                background: i % 3 === 0 ? "#00cccc" : i % 3 === 1 ? "#ffaa44" : "#ffffff",
-                left: `${8 + (i * 5.2) % 84}%`,
-                top: `${10 + (i * 7.3) % 75}%`,
-                animationDelay: `${(i * 0.37) % 3}s`,
-                animationDuration: `${2.4 + (i * 0.3) % 2}s`,
-              }} />
-          ))}
+          <div
+            className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full opacity-10"
+            style={{ background: "radial-gradient(circle, #00cccc 0%, transparent 70%)", filter: "blur(48px)" }}
+          />
+          <div
+            className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-8"
+            style={{ background: "radial-gradient(circle, #ff8833 0%, transparent 70%)", filter: "blur(60px)" }}
+          />
         </div>
 
         <div className="relative z-10 flex flex-col items-center px-6 py-10 text-center max-w-2xl w-full">
           {/* Badge */}
-          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] mb-6"
-            style={{ color: "#00cccc" }}>
+          <div
+            className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.3em] mb-6"
+            style={{ color: "#00cccc" }}
+          >
             <Sparkles className="h-4 w-4" />
             <span>NAVYUVA Heritage · 3D Adventure</span>
             <Sparkles className="h-4 w-4" />
@@ -816,7 +891,8 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
 
           {/* Main Title */}
           <div className="mb-2">
-            <h1 className="font-serif font-black tracking-[0.15em] uppercase"
+            <h1
+              className="font-serif font-black tracking-[0.15em] uppercase"
               style={{
                 fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
                 lineHeight: 1.0,
@@ -824,10 +900,12 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 filter: "drop-shadow(0 0 32px rgba(255, 120, 30, 0.5))",
-              }}>
+              }}
+            >
               THE LOST
             </h1>
-            <h1 className="font-serif font-black tracking-[0.35em] uppercase"
+            <h1
+              className="font-serif font-black tracking-[0.35em] uppercase"
               style={{
                 fontSize: "clamp(2.8rem, 8vw, 5.5rem)",
                 lineHeight: 1.0,
@@ -835,14 +913,17 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 filter: "drop-shadow(0 0 28px rgba(0, 200, 200, 0.6))",
-              }}>
+              }}
+            >
               SEAL
             </h1>
           </div>
 
           {/* Subtitle */}
-          <p className="mt-3 text-sm font-medium tracking-[0.15em] uppercase opacity-60"
-            style={{ color: "#c8a878" }}>
+          <p
+            className="mt-3 text-sm font-medium tracking-[0.15em] uppercase opacity-60"
+            style={{ color: "#c8a878" }}
+          >
             An Archaeological Expedition · Mohenjo-daro · 2600–1900 BCE
           </p>
 
@@ -870,10 +951,15 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
               ["E", "Inspect"],
               ["Mouse", "Camera"],
             ].map(([key, label]) => (
-              <div key={key} className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
-                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}>
-                <kbd className="rounded px-1.5 py-0.5 text-xs font-bold font-mono"
-                  style={{ background: "rgba(0,200,200,0.15)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.3)" }}>
+              <div
+                key={key}
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5"
+                style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.10)" }}
+              >
+                <kbd
+                  className="rounded px-1.5 py-0.5 text-xs font-bold font-mono"
+                  style={{ background: "rgba(0,200,200,0.15)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.3)" }}
+                >
                   {key}
                 </kbd>
                 <span style={{ color: "#a0957a" }}>{label}</span>
@@ -882,8 +968,10 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           </div>
 
           {/* Quality selector */}
-          <div className="mt-6 w-full max-w-sm rounded-xl p-4"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+          <div
+            className="mt-6 w-full max-w-sm rounded-xl p-4"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <Settings2 className="h-3.5 w-3.5" style={{ color: "#00cccc" }} />
               <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#8aabb0" }}>
@@ -892,11 +980,17 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             </div>
             <div className="grid grid-cols-2 gap-2">
               {(["ultra", "high", "mobile-high", "mobile"] as QualityTier[]).map((q) => (
-                <button key={q} type="button" onClick={() => setQualityTier(q)}
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQualityTier(q)}
                   className="rounded-lg px-3 py-2 text-xs font-semibold transition-all"
-                  style={qualityTier === q
-                    ? { background: "rgba(0,200,200,0.2)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.5)", boxShadow: "0 0 12px rgba(0,200,200,0.2)" }
-                    : { background: "rgba(255,255,255,0.03)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.07)" }}>
+                  style={
+                    qualityTier === q
+                      ? { background: "rgba(0,200,200,0.2)", color: "#00dddd", border: "1px solid rgba(0,200,200,0.5)", boxShadow: "0 0 12px rgba(0,200,200,0.2)" }
+                      : { background: "rgba(255,255,255,0.03)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.07)" }
+                  }
+                >
                   {q === "ultra" ? "⚡ Ultra (RTX)" : q === "high" ? "✨ High" : q === "mobile-high" ? "📱 Mobile Hi" : "🌿 Eco"}
                 </button>
               ))}
@@ -905,14 +999,19 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
 
           {/* Action buttons */}
           <div className="mt-8 flex w-full flex-col sm:flex-row items-center gap-3">
-            <button type="button" onClick={onExit}
+            <button
+              type="button"
+              onClick={onExit}
               className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all"
-              style={{ background: "rgba(255,255,255,0.05)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.08)" }}>
+              style={{ background: "rgba(255,255,255,0.05)", color: "#7a8a90", border: "1px solid rgba(255,255,255,0.08)" }}
+            >
               <ArrowLeft className="h-4 w-4" />
               Back
             </button>
 
-            <button type="button" onClick={() => setHasStarted(true)}
+            <button
+              type="button"
+              onClick={() => setHasStarted(true)}
               className="w-full sm:flex-1 flex items-center justify-center gap-3 rounded-xl px-8 py-4 text-base font-bold font-serif uppercase tracking-widest transition-all"
               style={{
                 background: "linear-gradient(135deg, #cc5500 0%, #ff7722 50%, #ffaa44 100%)",
@@ -920,8 +1019,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
                 boxShadow: "0 0 40px rgba(255, 110, 30, 0.35), 0 4px 24px rgba(0,0,0,0.5)",
                 letterSpacing: "0.18em",
               }}
-              onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 0 60px rgba(255, 120, 30, 0.55), 0 4px 24px rgba(0,0,0,0.5)")}
-              onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 0 40px rgba(255, 110, 30, 0.35), 0 4px 24px rgba(0,0,0,0.5)")}>
+            >
               <Zap className="h-5 w-5" />
               Begin Expedition
               <ArrowRight className="h-5 w-5" />
@@ -1018,7 +1116,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
               className="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-background/70 px-3 py-1.5 text-xs font-semibold text-foreground transition-all hover:border-primary/60 hover:bg-primary/10"
             >
               <Scroll className="h-3.5 w-3.5 text-primary" />
-              <span>Clues ({clues.length})</span>
+              <span>Dossier ({clues.length})</span>
             </button>
 
             {/* Score Display */}
@@ -1032,12 +1130,6 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
             </Button>
           </div>
         </div>
-
-        {/* Current Objective */}
-        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-semibold uppercase tracking-wider text-primary">Mission:</span>
-          <span className="text-foreground">{currentObjective}</span>
-        </div>
       </header>
 
       {/* 3D WebGL Canvas Viewport */}
@@ -1050,13 +1142,25 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
       >
         <canvas
           ref={canvasRef}
-          className="w-full h-[520px] sm:h-[640px] block cursor-grab active:cursor-grabbing focus:outline-none"
+          className="w-full h-[540px] sm:h-[660px] block cursor-grab active:cursor-grabbing focus:outline-none"
         />
+
+        {/* Clear Mission Objectives HUD Overlay (Collapsible & Persistent) */}
+        {!isIntroActive && !isFinaleActive && (
+          <div className="absolute top-4 left-4 z-20 max-w-xs sm:max-w-sm w-full">
+            <ObjectiveHUD
+              currentLevelId={currentLevelId}
+              currentActId={currentAct}
+              objectives={objectives}
+              currentDirective={currentObjective}
+              onOpenClues={() => setIsCluePanelOpen(true)}
+            />
+          </div>
+        )}
 
         {/* Cinematic Intro Overlay */}
         {isIntroActive && (
           <div className="absolute inset-0 z-30 flex flex-col justify-between p-6 sm:p-10 pointer-events-none bg-black/40 backdrop-blur-[1px] transition-all duration-700">
-            {/* Top Letterbox Bar & Brand */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 rounded-xl bg-black/85 px-3.5 py-1.5 border border-primary/40 text-[11px] uppercase tracking-widest text-primary font-bold shadow-2xl backdrop-blur-md">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -1072,7 +1176,6 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
               </button>
             </div>
 
-            {/* Center Cinematic Narrative Presentation */}
             <div className="mx-auto max-w-2xl text-center space-y-3 transition-all duration-500">
               <div className="inline-block rounded-full bg-primary/20 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.25em] text-primary border border-primary/50 shadow-lg">
                 {INTRO_SHOT_TEXTS[introShotIndex]?.tagline}
@@ -1092,7 +1195,6 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
               </p>
             </div>
 
-            {/* Bottom Progress Track */}
             <div className="flex flex-col items-center gap-2">
               <div className="flex items-center justify-center gap-2">
                 {INTRO_SHOT_TEXTS.map((_, idx) => (
@@ -1113,8 +1215,7 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           </div>
         )}
 
-        {/* Level 3 portal reveal: the payoff is a short, skippable in-engine
-            camera sequence with readable story beats rather than a silent teleport. */}
+        {/* Level 3 finale sequence */}
         {isFinaleActive && (
           <div className="absolute inset-0 z-30 pointer-events-none flex items-end justify-center bg-gradient-to-t from-black/75 via-transparent to-black/30 px-6 pb-12 text-center">
             <div className="max-w-xl animate-in fade-in zoom-in-95 duration-500">
@@ -1171,20 +1272,26 @@ export function LostSeal3DAdventure({ onComplete, onExit }: LostSeal3DAdventureP
           </div>
         )}
 
-        {/* Archaeological Clue Discovery Toast */}
+        {/* Objective & Discovery Toast */}
         {discoveryToast && !isIntroActive && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
-            <div className="flex items-center gap-2.5 rounded-xl border border-primary/60 bg-black/95 px-4 py-2 text-xs font-medium text-foreground shadow-2xl backdrop-blur-md">
-              <span className="text-base">{discoveryToast.icon}</span>
-              <span className="text-gold font-bold font-serif uppercase tracking-wider text-[11px]">
-                New Clue:
+          <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all duration-300 animate-in fade-in slide-in-from-bottom-3">
+            <div className="flex items-center gap-3 rounded-2xl border border-primary/70 bg-stone-950/95 px-5 py-2.5 text-xs text-foreground shadow-2xl shadow-black backdrop-blur-md">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-sm font-bold">
+                {discoveryToast.icon}
               </span>
-              <span className="text-[#f5ebd9] font-medium">{discoveryToast.title}</span>
+              <div>
+                <div className="text-gold font-serif font-bold text-[12px]">
+                  {discoveryToast.title}
+                </div>
+                {discoveryToast.subtitle && (
+                  <div className="text-[10px] text-stone-400 font-mono">
+                    {discoveryToast.subtitle}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
-
-
 
         {/* On-Screen Mobile Touch Controls Overlay */}
         {isTouchDevice && (

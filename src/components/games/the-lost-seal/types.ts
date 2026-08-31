@@ -3,6 +3,8 @@ export interface ArchaeologicalClue {
   title: string;
   category: "Stratigraphy" | "Epigraphy" | "Iconography" | "Trade";
   icon: string;
+  image?: string | undefined;
+  imageCaption?: string | undefined;
   shortSnippet: string;
   fullNote: string;
   discoveredInStage: number;
@@ -13,6 +15,8 @@ export interface JournalArtifact {
   name: string;
   category: "Ceramic" | "Steatite" | "Metal" | "Tool" | "Glyptic";
   icon: string;
+  image?: string | undefined;
+  imageCaption?: string | undefined;
   period: string;
   provenance: string;
   description: string;
@@ -25,6 +29,8 @@ export interface JournalDocument {
   title: string;
   docType: "Field Log" | "Trade Ledger" | "Epigraphic Inscription" | "Bulla Tag";
   icon: string;
+  image?: string | undefined;
+  imageCaption?: string | undefined;
   excerpt: string;
   transcription: string;
   historicalContext: string;
@@ -38,6 +44,7 @@ export interface ExpeditionObjective {
   description: string;
   completed: boolean;
   order: number;
+  stageNumber?: number | undefined;
 }
 
 export interface ExpeditionStats {
@@ -56,6 +63,7 @@ export interface ExcavationObject {
   name: string;
   category: string;
   icon: string;
+  image?: string | undefined;
   position: {
     top: string;
     left: string;
@@ -100,4 +108,3 @@ export interface SealInspectionArea {
   historicalMeaning: string;
   verified: boolean;
 }
-
